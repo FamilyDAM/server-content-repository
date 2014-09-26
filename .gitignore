@@ -1,0 +1,8 @@
+.idea
+.temp
+target
+out
+node_modules
+bower_components
+dist
+*.log
