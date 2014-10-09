@@ -136,7 +136,8 @@ public class UserManagerController extends AuthenticatedService
                 Authorizable user = userQueryResult.next();
 
                 // return all users but the system admin or anonymous accounts
-                if (!user.getID().equalsIgnoreCase(UserConstants.DEFAULT_ADMIN_ID) && !user.getID().equalsIgnoreCase(UserConstants.DEFAULT_ANONYMOUS_ID)) {
+                if ( !user.getID().equalsIgnoreCase(UserConstants.DEFAULT_ANONYMOUS_ID) )//&& !user.getID().equalsIgnoreCase(UserConstants.DEFAULT_ADMIN_ID) )
+                {
                     Map<String, String> userMap = new HashMap<>();
                     userMap.put("username", user.getID());
                     userMap.put(JcrConstants.JCR_PATH, user.getPath());
