@@ -42,10 +42,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Part;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -56,7 +58,7 @@ import java.util.Map;
  */
 @Controller
 @RequestMapping("/~/**")
-public class FileManagerController extends AuthenticatedService
+public class JcrController extends AuthenticatedService
 {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -154,7 +156,8 @@ public class FileManagerController extends AuthenticatedService
             Tree rootTree = getContentRoot(session);
             Tree tree = getRelativeTree(rootTree, request.getRequestURI());
 
-            if (!tree.exists()) {
+
+
 
                 NodeUtil newNode;
                 try {
@@ -172,54 +175,14 @@ public class FileManagerController extends AuthenticatedService
                      */
                     if( request instanceof MultipartHttpServletRequest )
                     {
-                        NodeUtil fileNode = PropertyUtil.writeFileToNode(newNode, (MultipartHttpServletRequest) request);
-
-
-                        /**
-                         * process any request Parameters
-                         */
-                        Map<String, String[]> parameters = request.getParameterMap();
-                        if( parameters.size() > 0) {
-                            PropertyUtil.writeParametersToNode(fileNode, parameters);
-                        }
-
-                        /**
-                         * check for and process a JSON body
-                         * todo: is this legal, need to test
-                         */
-                        String jsonBody = IOUtils.toString(request.getInputStream());
-                        if( jsonBody.length() > 0 && jsonBody.startsWith("{") && jsonBody.endsWith("}")){
-                            PropertyUtil.writeJsonToNode(fileNode, jsonBody);
-                        }
-
-
-
+                        saveFile(((MultipartHttpServletRequest) request), newNode);
                     }else{
                         /**
                          * Create Folders
                          * Define and Save NT:FOLDER nodes
-                         */
-
-
-                        /**
-                         * process any request Parameters
-                         */
-                        Map<String, String[]> parameters = request.getParameterMap();
-                        if( parameters.size() > 0) {
-                            PropertyUtil.writeParametersToNode(newNode, parameters);
-                        }
-
-                        /**
-                         * check for and process a JSON body
-                         */
-                        String jsonBody = IOUtils.toString(request.getInputStream());
-                        if( jsonBody.length() > 0 && jsonBody.startsWith("{") && jsonBody.endsWith("}")){
-                            PropertyUtil.writeJsonToNode(newNode, jsonBody);
-                        }
-
-
+                         */saveProperties(request, newNode);
+                        saveBodyProperties(request, newNode);
                     }
-
 
                     root.commit();
                 }
@@ -229,7 +192,7 @@ public class FileManagerController extends AuthenticatedService
                     return new ResponseEntity<Tree>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-            }
+
             return new ResponseEntity<Tree>(HttpStatus.OK);
         }
         catch(AuthenticationException ae){
@@ -237,6 +200,65 @@ public class FileManagerController extends AuthenticatedService
         }
         finally {
         }
+    }
+
+
+    private void saveBodyProperties(HttpServletRequest request, NodeUtil newNode) throws IOException
+    {
+        /**
+         * check for and process a JSON body
+         */
+        String jsonBody = IOUtils.toString(request.getInputStream());
+        if( jsonBody.length() > 0 && jsonBody.startsWith("{") && jsonBody.endsWith("}")){
+            PropertyUtil.writeJsonToNode(newNode, jsonBody);
+        }
+    }
+
+
+    private void saveProperties(HttpServletRequest request, NodeUtil newNode) throws AccessDeniedException, CommitFailedException
+    {
+        /**
+         * process any request Parameters
+         */
+        Map<String, String[]> parameters = request.getParameterMap();
+        if( parameters.size() > 0) {
+            PropertyUtil.writeParametersToNode(newNode, parameters);
+        }
+    }
+
+
+    private void saveFile(MultipartHttpServletRequest request, NodeUtil node) throws AccessDeniedException, IOException, CommitFailedException
+    {
+        NodeUtil fileNode = PropertyUtil.writeFileToNode(node, request);
+
+        /**
+         * process any request Parameters
+         */
+        saveProperties(request, fileNode);
+
+        /**
+         * check for and process a JSON body
+         * todo: is this legal, need to test
+         */
+        saveBodyProperties(request, fileNode);
+
+    }
+
+
+    /**
+     * Pull out the filename from the header
+     * @param part
+     * @return
+     */
+    private String extractFileName(Part part) {
+        String contentDisp = part.getHeader("content-disposition");
+        String[] items = contentDisp.split(";");
+        for (String s : items) {
+            if (s.trim().startsWith("filename")) {
+                return s.substring(s.indexOf("=") + 2, s.length()-1);
+            }
+        }
+        return "";
     }
 
 

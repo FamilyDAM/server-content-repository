@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.value.BinaryValue;
+import org.springframework.util.MimeType;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
@@ -189,12 +190,19 @@ public class PropertyUtil
                 Value[] content = new Value[1];
                 content[0] = new BinaryValue(file.getInputStream());
 
-                if( newNode.getTree().getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING) == JcrConstants.NT_FOLDER ) {
-                    NodeUtil fileNode = newNode.addChild(key, "nt:file");
+                if( newNode.getTree().getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equalsIgnoreCase(JcrConstants.NT_FOLDER) )
+                {
+                    String fileName = file.getOriginalFilename();
+                    NodeUtil fileNode = newNode.addChild(fileName, "nt:file");
                     fileNode.setString(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
-                    fileNode.setString(JcrConstants.JCR_NAME, key);
+                    fileNode.setString(JcrConstants.JCR_NAME, fileName);
                     fileNode.setString(JcrConstants.JCR_CREATED, "todo");//session.getAuthInfo().getUserID());
-                    fileNode.setString(JcrConstants.JCR_MIMETYPE, file.getContentType());
+                    if( file.getContentType() != null ) {
+                        fileNode.setString(JcrConstants.JCR_MIMETYPE, file.getContentType());
+                    }else{
+                        String type = MimeTypeManager.getMimeType(fileName);
+                        fileNode.setString(JcrConstants.JCR_MIMETYPE, type);
+                    }
                     fileNode.setValues(JcrConstants.JCR_CONTENT, content);
 
                     return fileNode;
@@ -207,6 +215,7 @@ public class PropertyUtil
         }
 
         return newNode;
+
     }
 
 
