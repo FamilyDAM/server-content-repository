@@ -63,19 +63,6 @@ public class ImportController extends AuthenticatedService
 {
 
 
-    private Tree getContentRoot(ContentSession session) throws LoginException, NoSuchWorkspaceException
-    {
-        Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
-        return tree.getChild(FamilyDAMConstants.DAM_ROOT);
-    }
-
-    private Tree getRelativeTree(Tree root, String relativePath)
-    {
-        String _path = relativePath.substring(relativePath.indexOf('~') + 1);
-        return TreeUtil.getTree(root, _path);
-    }
-
     @RequestMapping(value = "/copy")
     public ResponseEntity<Object> copyLocalFile(HttpServletRequest request, @RequestBody Map props) throws LoginException, NoSuchWorkspaceException
     {

@@ -64,21 +64,6 @@ public class JcrController extends AuthenticatedService
 
 
 
-    private Tree getContentRoot(ContentSession session) throws LoginException, NoSuchWorkspaceException
-    {
-        Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
-        return tree.getChild(FamilyDAMConstants.DAM_ROOT);
-    }
-
-
-    private Tree getRelativeTree(Tree root, String relativePath)
-    {
-        String _path = relativePath.substring(relativePath.indexOf('~') + 1);
-        return TreeUtil.getTree(root, _path);
-    }
-
-
     @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<Object> getNode(HttpServletRequest request) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
@@ -93,7 +78,7 @@ public class JcrController extends AuthenticatedService
             }
 
 
-            if( tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING) == JcrConstants.NT_FILE ) {
+            if( tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE) ) {
 
                 return readFileNode(tree);
 

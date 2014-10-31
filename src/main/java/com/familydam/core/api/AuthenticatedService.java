@@ -17,15 +17,19 @@
 
 package com.familydam.core.api;
 
+import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +56,21 @@ public class AuthenticatedService
     //@Autowired private Root root;
 
     private SecurityProvider securityProvider;
+
+
+    protected Tree getContentRoot(ContentSession session) throws LoginException, NoSuchWorkspaceException
+    {
+        Root root = session.getLatestRoot();
+        Tree tree = root.getTree("/");
+        return tree.getChild(FamilyDAMConstants.DAM_ROOT);
+    }
+
+
+    protected Tree getRelativeTree(Tree root, String relativePath)
+    {
+        String _path = relativePath.substring(relativePath.indexOf('~') + 1);
+        return TreeUtil.getTree(root, _path);
+    }
 
 
     private SecurityProvider getSecurityProvider()

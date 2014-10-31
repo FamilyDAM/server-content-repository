@@ -67,14 +67,6 @@ public class UserManagerController extends AuthenticatedService
     private ContentRepository contentRepository;
 
 
-    private Tree getContentRoot(ContentSession session) throws LoginException, NoSuchWorkspaceException
-    {
-        Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
-        return tree.getChild(FamilyDAMConstants.DAM_ROOT);
-    }
-
-
     @RequestMapping(value = "/login", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<Map> authenticateUser(HttpServletRequest request, HttpServletResponse response, @RequestParam("username") String username, @RequestParam("password") String password) throws IOException, LoginException, RepositoryException
     {
