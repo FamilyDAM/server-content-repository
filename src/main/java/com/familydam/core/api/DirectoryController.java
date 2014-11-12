@@ -47,7 +47,7 @@ import java.util.Map;
 public class DirectoryController extends AuthenticatedService
 {
     @RequestMapping(method = RequestMethod.GET)
-    public ResponseEntity<List<Map>> listDirectoriesByUser(HttpServletRequest request, @RequestParam(value = "root", required = false) String rootDir, @RequestParam(value = "types", required = false) String types )
+    public ResponseEntity<List<Map>> listDirectoriesByUser(HttpServletRequest request, @RequestParam(value = "root", required = false, defaultValue = "/") String rootDir, @RequestParam(value = "types", required = false) String types )
             throws NoSuchWorkspaceException, IOException
     {
         try (ContentSession session = getSession(request)) {

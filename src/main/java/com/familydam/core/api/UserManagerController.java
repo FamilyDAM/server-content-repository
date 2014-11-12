@@ -17,8 +17,7 @@
 
 package com.familydam.core.api;
 
-import com.familydam.core.Application;
-import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.FamilyDAM;
 import com.familydam.core.helpers.PropertyUtil;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -29,8 +28,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,7 +108,7 @@ public class UserManagerController extends AuthenticatedService
     @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<ArrayList<Map<String, String>>> getUserList(HttpServletRequest request) throws IOException, LoginException, RepositoryException
     {
-        try (ContentSession session = getSession(new SimpleCredentials(Application.adminUserId, Application.adminPassword.toCharArray()))) {
+        try (ContentSession session = getSession(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()))) {
             UserManager userManager = getUserManager(session);
 
             Iterator<Authorizable> userQueryResult = userManager.findAuthorizables(new org.apache.jackrabbit.api.security.user.Query()

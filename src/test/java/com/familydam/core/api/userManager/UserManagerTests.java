@@ -17,7 +17,7 @@
 
 package com.familydam.core.api.userManager;
 
-import com.familydam.core.Application;
+import com.familydam.core.FamilyDAM;
 import com.familydam.core.api.fileManager.RootDirTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.hamcrest.Matchers;
@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Created by mnimer on 9/19/14.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = Application.class)
+@SpringApplicationConfiguration(classes = FamilyDAM.class)
 @WebAppConfiguration
 public class UserManagerTests
 {

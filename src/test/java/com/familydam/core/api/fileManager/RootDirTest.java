@@ -17,7 +17,7 @@
 
 package com.familydam.core.api.fileManager;
 
-import com.familydam.core.Application;
+import com.familydam.core.FamilyDAM;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Created by mnimer on 9/17/14.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = Application.class)
+@SpringApplicationConfiguration(classes = FamilyDAM.class)
 @WebAppConfiguration
 public class RootDirTest
 {

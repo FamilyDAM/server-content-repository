@@ -17,7 +17,7 @@
 
 package com.familydam.core.api.fileManager.folders;
 
-import com.familydam.core.Application;
+import com.familydam.core.FamilyDAM;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -46,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Created by mnimer on 9/22/14.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = Application.class)
+@SpringApplicationConfiguration(classes = FamilyDAM.class)
 @WebAppConfiguration
 public class CreateFolderNodeTests
 {

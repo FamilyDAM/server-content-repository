@@ -4,24 +4,19 @@ import com.familydam.core.plugins.ImageNodeObserver;
 import com.familydam.core.plugins.InitialDAMContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.embedded.MultipartConfigFactory;
-import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 
-import javax.jcr.Repository;
 import javax.servlet.MultipartConfigElement;
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Configuration
 @ComponentScan
 @EnableAutoConfiguration
-public class Application
+public class FamilyDAM
 {
     public static String adminUserId = "admin";
     public static String adminPassword = "admin";
@@ -39,7 +34,7 @@ public class Application
 
     public static void main(String[] args)
     {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(FamilyDAM.class, args);
     }
 
 
