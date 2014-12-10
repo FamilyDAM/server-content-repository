@@ -33,6 +33,7 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,8 +47,54 @@ import java.util.Map;
 @RequestMapping("/api/directory")
 public class DirectoryController extends AuthenticatedService
 {
-    @RequestMapping(method = RequestMethod.GET)
-    public ResponseEntity<List<Map>> listDirectoriesByUser(HttpServletRequest request, @RequestParam(value = "root", required = false, defaultValue = "/") String rootDir, @RequestParam(value = "types", required = false) String types )
+    @RequestMapping(value = "/", method = RequestMethod.POST)
+    public ResponseEntity<List<Map>> listDirectoryItems(
+            HttpServletRequest request, HttpServletResponse response,
+            @RequestParam(value = "path", required = false, defaultValue = "/") String path )
+            throws NoSuchWorkspaceException, IOException
+    {
+        try (ContentSession session = getSession(request)) {
+            Root root = session.getLatestRoot();
+            Tree tree = getContentRoot(session);
+            if( path != null ) {
+                tree = getRelativeTree(tree, path);
+            }
+
+
+            List<Map> childNodes = new ArrayList<>();
+            for (Tree node : tree.getChildren()) {
+                if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
+                        || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)
+                        || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE)) {
+                    Map _node = new HashMap();
+                    _node.put("name", node.getName());
+                    _node.put("path", node.getPath().replace("/dam/", "/~/")  );
+                    _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/")  );
+                    _node.put("children", new ArrayList() );
+
+                    if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
+                            || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)) {
+                        _node.put("type", "folder");
+                    }else if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE)) {
+                        _node.put("type", "file");
+                    }
+                    childNodes.add(_node);
+                }
+            }
+
+
+            return new ResponseEntity<>(childNodes, HttpStatus.OK);
+
+        }catch(AuthenticationException|LoginException ae){
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
+    @RequestMapping(value = "/tree", method = RequestMethod.GET)
+    public ResponseEntity<List<Map>> listDirectoryTree(
+            HttpServletRequest request, HttpServletResponse response,
+            @RequestParam(value = "root", required = false, defaultValue = "/") String rootDir )
             throws NoSuchWorkspaceException, IOException
     {
         try (ContentSession session = getSession(request)) {

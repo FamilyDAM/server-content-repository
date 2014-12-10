@@ -19,6 +19,7 @@ package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,10 +38,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -83,6 +89,12 @@ public class AuthenticatedService
 
 
 
+    ContentSession getSession(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException, AuthenticationException
+    {
+        return getSession(request);
+    }
+
+
     ContentSession getSession(HttpServletRequest request) throws LoginException, NoSuchWorkspaceException, AuthenticationException
     {
         Credentials credentials = null;
@@ -112,6 +124,60 @@ public class AuthenticatedService
     ContentSession getSession(Credentials credentials) throws LoginException, NoSuchWorkspaceException, AuthenticationException
     {
         ContentSession session = contentRepository.login(credentials, null);
+        return session;
+    }
+
+
+
+    Session getRepositorySession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException,AuthenticationException
+    {
+        Credentials credentials = null;
+
+        String authorization = request.getHeader("Authorization");
+        Cookie[] cookies = request.getCookies();
+
+        Map<String, String> cookieMap = new HashMap<>();
+        if( cookies != null ) {
+            for (Cookie cookie : cookies) {
+                cookieMap.put(cookie.getName(), cookie.getValue());
+            }
+        }
+
+        // Try to pull the auth data a few different ways
+        if (authorization != null && authorization.startsWith("Basic ")) {
+            String[] basic =
+                    Base64.decode(authorization.substring("Basic ".length())).split(":");
+            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+
+            Cookie _cookie = new Cookie("x-auth-token", authorization);
+            _cookie.setDomain(".localhost");
+            _cookie.setHttpOnly(true);
+            response.addCookie(_cookie);
+
+            request.getSession().setAttribute("x-auth-token", authorization);
+        }
+        else if (request.getParameter("token") != null ) {
+            String[] basic = Base64.decode(request.getParameter("token").substring("Basic ".length())).split(":");
+            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+        }
+        else if (cookieMap.containsKey("x-auth-token") ) {
+            String[] basic = Base64.decode(cookieMap.get("authorization").substring("Basic ".length())).split(":");
+            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+        }
+        else {
+            String username = request.getParameter("j_username");
+            String password = request.getParameter("j_password");
+            if( username != null && password != null ){
+                credentials = new SimpleCredentials(username, password.toCharArray());
+            }
+        }
+
+        if( credentials == null ){
+            throw new AuthenticationException();
+        }
+
+        Repository repository = JcrUtils.getRepository();
+        Session session = repository.login(credentials, null);
         return session;
     }
 

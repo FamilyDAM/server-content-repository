@@ -68,6 +68,45 @@ public class FamilyDAM
     }
 
 
+
+    private void addServlets()
+    {
+        /**
+         private void addServlets(Oak oak, String path) {
+         Jcr jcr = new Jcr(oak);
+
+         // 1 - OakServer
+         ContentRepository repository = oak.createContentRepository();
+         ServletHolder holder = new ServletHolder(new OakServlet(repository));
+         context.addServlet(holder, path + "/*");
+
+         // 2 - Webdav Server on JCR repository
+         final Repository jcrRepository = jcr.createRepository();
+         @SuppressWarnings("serial")
+         ServletHolder webdav = new ServletHolder(new SimpleWebdavServlet() {
+         @Override
+         public Repository getRepository() {
+         return jcrRepository;
+         }
+         });
+         webdav.setInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, path + "/webdav");
+         webdav.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER, "Basic realm=\"Oak\"");
+         context.addServlet(webdav, path + "/webdav/*");
+
+         // 3 - JCR Remoting Server
+         @SuppressWarnings("serial")
+         ServletHolder jcrremote = new ServletHolder(new JcrRemotingServlet() {
+         @Override
+         protected Repository getRepository() {
+         return jcrRepository;
+         }
+         });
+         jcrremote.setInitParameter(JCRWebdavServerServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, path + "/jcrremote");
+         jcrremote.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER, "Basic realm=\"Oak\"");
+         context.addServlet(jcrremote, path + "/jcrremote/*");
+         **/
+    }
+
     @Bean
     public Jcr jcr(){
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(3);
