@@ -18,10 +18,7 @@
 package com.familydam.core.api;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -29,12 +26,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.jcr.NoSuchWorkspaceException;
-import javax.security.auth.login.LoginException;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,37 +44,49 @@ import java.util.Map;
 @RequestMapping("/api/directory")
 public class DirectoryController extends AuthenticatedService
 {
+
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<List<Map>> listDirectoryItems(
             HttpServletRequest request, HttpServletResponse response,
-            @RequestParam(value = "path", required = false, defaultValue = "/") String path )
-            throws NoSuchWorkspaceException, IOException
+            @RequestParam(value = "path", required = false, defaultValue = "/") String path)
+            throws RepositoryException
     {
-        try (ContentSession session = getSession(request)) {
-            Root root = session.getLatestRoot();
-            Tree tree = getContentRoot(session);
-            if( path != null ) {
-                tree = getRelativeTree(tree, path);
+        Session session = null;
+        try{
+            session = getSession(request);
+            Node root = session.getRootNode();
+            Node contentRoot = getContentRoot(session);
+            path = path.replace("/~/", "/");
+            if (path != null && path.length()>1) {
+                if( path.startsWith("/"))
+                {
+                    path = path.substring(1);
+                }
+                contentRoot = contentRoot.getNode(path);
             }
 
 
+
+            Iterable<Node> _childNodes = JcrUtils.getChildNodes(contentRoot);
             List<Map> childNodes = new ArrayList<>();
-            for (Tree node : tree.getChildren()) {
-                if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
-                        || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)
-                        || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE)) {
+            for (Node node : _childNodes )
+            {
+                if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)
+                        || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_HIERARCHYNODE)) {
                     Map _node = new HashMap();
                     _node.put("name", node.getName());
-                    _node.put("path", node.getPath().replace("/dam/", "/~/")  );
-                    _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/")  );
-                    _node.put("children", new ArrayList() );
+                    _node.put("path", node.getPath().replace("/dam/", "/~/"));
+                    _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/"));
+                    _node.put("children", new ArrayList());
 
-                    if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
-                            || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)) {
+                    if ( node.isNodeType(JcrConstants.NT_FOLDER)
+                            || node.isNodeType(JcrConstants.NT_HIERARCHYNODE) ) {
                         _node.put("type", "folder");
-                    }else if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE)) {
+                    } else if ( node.isNodeType(JcrConstants.NT_FILE) ) {
                         _node.put("type", "file");
                     }
+
+                    _node.put("isReadOnly", false);
                     childNodes.add(_node);
                 }
             }
@@ -85,8 +94,11 @@ public class DirectoryController extends AuthenticatedService
 
             return new ResponseEntity<>(childNodes, HttpStatus.OK);
 
-        }catch(AuthenticationException|LoginException ae){
+        }
+        catch (AuthenticationException ae) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }finally {
+            if( session != null ) session.logout();
         }
     }
 
@@ -94,36 +106,50 @@ public class DirectoryController extends AuthenticatedService
     @RequestMapping(value = "/tree", method = RequestMethod.GET)
     public ResponseEntity<List<Map>> listDirectoryTree(
             HttpServletRequest request, HttpServletResponse response,
-            @RequestParam(value = "root", required = false, defaultValue = "/") String rootDir )
-            throws NoSuchWorkspaceException, IOException
+            @RequestParam(value = "root", required = false, defaultValue = "/") String path)
+            throws RepositoryException
     {
-        try (ContentSession session = getSession(request)) {
-            Root root = session.getLatestRoot();
-            Tree tree = getContentRoot(session);
-            if( rootDir != null ) {
-                tree = getRelativeTree(tree, rootDir);
+        Session session = null;
+        try{
+            session = getSession(request);
+            Node root = session.getRootNode();
+            Node contentRoot = getContentRoot(session);
+            if (path != null && path.length()>1) {
+                if( path.startsWith("/"))
+                {
+                    path = path.substring(1);
+                }
+                contentRoot = contentRoot.getNode(path);
             }
 
-            List<Map> nodes = walkTree(tree);
+            List<Map> nodes = walkTree(contentRoot);
             return new ResponseEntity<>(nodes, HttpStatus.OK);
 
-        }catch(AuthenticationException|LoginException ae){
+        }
+        catch (AuthenticationException ae) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        catch (Exception ae) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }finally {
+            if( session != null ) session.logout();
         }
     }
 
 
-    private List<Map> walkTree(Tree tree)
+    private List<Map> walkTree(Node root) throws RepositoryException
     {
+        Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
         List<Map> childNodes = new ArrayList<>();
-        for (Tree node : tree.getChildren()) {
-            if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
-                    || node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE) ) {
+        for ( Node node : _childNodes ) {
+            if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER) || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_HIERARCHYNODE) ) {
                 Map _node = new HashMap();
+                _node.put("type", "folder");
                 _node.put("name", node.getName());
-                _node.put("path", node.getPath().replace("/dam/","/~/")  );
-                _node.put("parent", node.getParent().getPath().replace("/dam/","/~/")  );
-                _node.put("children", walkTree(node) );
+                _node.put("path", node.getPath().replace("/dam/", "/~/"));
+                _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/"));
+                _node.put("children", walkTree(node));
+                _node.put("isReadOnly", false);
                 childNodes.add(_node);
             }
         }

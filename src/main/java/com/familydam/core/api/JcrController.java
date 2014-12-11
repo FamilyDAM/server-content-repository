@@ -17,20 +17,16 @@
 
 package com.familydam.core.api;
 
-import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.PropertyUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -44,9 +40,11 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.Node;
+import javax.jcr.Session;
 import javax.security.auth.login.LoginException;
-import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,41 +61,48 @@ public class JcrController extends AuthenticatedService
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
-
     @RequestMapping(method = RequestMethod.GET)
-    public ResponseEntity<Object> getNode(HttpServletRequest request) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
+    public ResponseEntity<Object> getNode(HttpServletRequest request, HttpServletResponse response) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
-        try (ContentSession session = getSession(request)) {
-
-            Tree rootTree = getContentRoot(session);
+        Session session = null;
+        try {
+            session = getSession(request);
+            Node contentRoot = getContentRoot(session);
             // walk the tree and get a reference to the requested path, or return a not found status
-            Tree tree = getRelativeTree(rootTree, request.getRequestURI());
+            Node node = contentRoot.getNode(request.getRequestURI());
 
-            if (!tree.exists()) {
-                return new ResponseEntity<Object>(HttpStatus.NOT_FOUND);
-            }
+            if (node.isNodeType(JcrConstants.NT_FILE)) {
+                InputStream is = JcrUtils.readFile(node);
 
+                byte[] imageBytes = IOUtils.toByteArray(is);
+                response.setContentLength(imageBytes.length);
+                response.setContentType(node.getProperty(JcrConstants.JCR_MIMETYPE).getString());
+                response.getOutputStream().write(imageBytes);
 
-            if( tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE) ) {
-
-                return readFileNode(tree);
-
+                return new ResponseEntity<Object>(HttpStatus.OK);
             } else {
+
                 // return unstructured node of name/value properties
-                Map nodeInfo = PropertyUtil.readProperties(tree);
+                Map nodeInfo = PropertyUtil.readProperties(node);
                 return new ResponseEntity<Object>(nodeInfo, HttpStatus.OK);
+
             }
 
         }
-        catch(Exception ae){
+        catch (Exception ae) {
             return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
 
 
-
     /**
      * Pull out and return the actual file saved in a given node.
+     *
      * @param tree
      * @return
      * @throws IOException
@@ -107,25 +112,25 @@ public class JcrController extends AuthenticatedService
         // Set headers
         final HttpHeaders headers = new HttpHeaders();
 
-        if( tree.getProperty(JcrConstants.JCR_MIMETYPE) != null  ) {
-            headers.setContentType( MediaType.parseMediaType(tree.getProperty(JcrConstants.JCR_MIMETYPE).getValue(Type.STRING))  );
-        }else{
+        if (tree.getProperty(JcrConstants.JCR_MIMETYPE) != null) {
+            headers.setContentType(MediaType.parseMediaType(tree.getProperty(JcrConstants.JCR_MIMETYPE).getValue(Type.STRING)));
+        } else {
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         }
 
         PropertyState state = tree.getProperty(JcrConstants.JCR_CONTENT);
         Type<?> type = state.getType();
 
-        InputStream is = ((BinaryBasedBlob)((List)state.getValue(type)).get(0)).getNewStream();
+        InputStream is = ((BinaryBasedBlob) ((List) state.getValue(type)).get(0)).getNewStream();
         byte[] bytes = org.apache.commons.io.IOUtils.toByteArray(is);
         //byte[] bytes = IOUtils.readBytes(is);
         return new ResponseEntity<Object>(bytes, headers, HttpStatus.OK);
     }
 
 
-
     /**
      * Create or replace a node
+     *
      * @param request
      * @return
      * @throws IOException
@@ -133,60 +138,6 @@ public class JcrController extends AuthenticatedService
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
      */
-    @RequestMapping(method = RequestMethod.POST, produces = "application/json")
-    public ResponseEntity<Tree> createFolder(HttpServletRequest request) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
-    {
-        try (ContentSession session = getSession(request)) {
-            Root root = session.getLatestRoot();
-            Tree rootTree = getContentRoot(session);
-            Tree tree = getRelativeTree(rootTree, request.getRequestURI());
-
-
-
-
-                NodeUtil newNode;
-                try {
-                    NodeUtil nodeUtil = new NodeUtil(root.getTree("/"));
-                    newNode = nodeUtil.getOrAddTree(tree.getPath(), JcrConstants.NT_FOLDER);
-
-                    String name = tree.getPath().substring(tree.getPath().lastIndexOf("/")+1);
-                    newNode.setString(JcrConstants.JCR_NAME, name);
-                    newNode.setStrings(NodeTypeConstants.JCR_CREATEDBY, "todo");//todo, get userId from auth user - request.getUserPrincipal().getName()
-
-
-                    /**
-                     * Uploaded File(s)
-                     * Define and Save NT:FILE nodes
-                     */
-                    if( request instanceof MultipartHttpServletRequest )
-                    {
-                        saveFile(((MultipartHttpServletRequest) request), newNode);
-                    }else{
-                        /**
-                         * Create Folders
-                         * Define and Save NT:FOLDER nodes
-                         */saveProperties(request, newNode);
-                        saveBodyProperties(request, newNode);
-                    }
-
-                    root.commit();
-                }
-                catch (Exception ex) {
-                    if( logger.isDebugEnabled() ) ex.printStackTrace();
-                    logger.error(ex.getMessage(), ex);
-                    return new ResponseEntity<Tree>(HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-
-
-            return new ResponseEntity<Tree>(HttpStatus.OK);
-        }
-        catch(AuthenticationException ae){
-            return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
-        }
-        finally {
-        }
-    }
-
 
     private void saveBodyProperties(HttpServletRequest request, NodeUtil newNode) throws IOException
     {
@@ -194,7 +145,7 @@ public class JcrController extends AuthenticatedService
          * check for and process a JSON body
          */
         String jsonBody = IOUtils.toString(request.getInputStream());
-        if( jsonBody.length() > 0 && jsonBody.startsWith("{") && jsonBody.endsWith("}")){
+        if (jsonBody.length() > 0 && jsonBody.startsWith("{") && jsonBody.endsWith("}")) {
             PropertyUtil.writeJsonToNode(newNode, jsonBody);
         }
     }
@@ -206,7 +157,7 @@ public class JcrController extends AuthenticatedService
          * process any request Parameters
          */
         Map<String, String[]> parameters = request.getParameterMap();
-        if( parameters.size() > 0) {
+        if (parameters.size() > 0) {
             PropertyUtil.writeParametersToNode(newNode, parameters);
         }
     }
@@ -214,38 +165,40 @@ public class JcrController extends AuthenticatedService
 
     private void saveFile(MultipartHttpServletRequest request, NodeUtil node) throws AccessDeniedException, IOException, CommitFailedException
     {
-        NodeUtil fileNode = PropertyUtil.writeFileToNode(node, request);
+        throw new RuntimeException("Not implemented exception");
+        //NodeUtil fileNode = PropertyUtil.writeFileToNode(node, request);
 
         /**
          * process any request Parameters
          */
-        saveProperties(request, fileNode);
+        //saveProperties(request, fileNode);
 
         /**
          * check for and process a JSON body
          * todo: is this legal, need to test
          */
-        saveBodyProperties(request, fileNode);
+        //saveBodyProperties(request, fileNode);
 
     }
 
 
     /**
      * Pull out the filename from the header
+     *
      * @param part
      * @return
      */
-    private String extractFileName(Part part) {
+    private String extractFileName(Part part)
+    {
         String contentDisp = part.getHeader("content-disposition");
         String[] items = contentDisp.split(";");
         for (String s : items) {
             if (s.trim().startsWith("filename")) {
-                return s.substring(s.indexOf("=") + 2, s.length()-1);
+                return s.substring(s.indexOf("=") + 2, s.length() - 1);
             }
         }
         return "";
     }
-
 
 
     /**
@@ -259,35 +212,36 @@ public class JcrController extends AuthenticatedService
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
 
-    @RequestMapping(method = RequestMethod.PUT)
-    public ResponseEntity<Tree> updateFolder(HttpServletRequest request, String property, Object value) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
-    {
-        try (ContentSession session = getSession(request)) {
-            Root root = session.getLatestRoot();
-            Tree tree = getContentRoot(session);
+     @RequestMapping(method = RequestMethod.PUT)
+     public ResponseEntity<Tree> updateFolder(HttpServletRequest request, String property, Object value) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
+     {
+     try (ContentSession session = getSession(request)) {
+     Root root = session.getLatestRoot();
+     Tree tree = getContentRoot(session);
 
 
-            String jcrPath = request.getRequestURI().substring(2);
-            Tree childPath = tree.getChild(jcrPath);
-            if (!childPath.exists()) {
-                return new ResponseEntity<Tree>(HttpStatus.NOT_FOUND);
-            }
+     String jcrPath = request.getRequestURI().substring(2);
+     Tree childPath = tree.getChild(jcrPath);
+     if (!childPath.exists()) {
+     return new ResponseEntity<Tree>(HttpStatus.NOT_FOUND);
+     }
 
-            childPath.setProperty(property, value);
-            root.commit();
+     childPath.setProperty(property, value);
+     root.commit();
 
-            return new ResponseEntity<Tree>(tree.getChild(jcrPath), HttpStatus.OK);
-        }
-        catch(AuthenticationException ae){
-            return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
-        }
-        finally {
-        }
-    } */
+     return new ResponseEntity<Tree>(tree.getChild(jcrPath), HttpStatus.OK);
+     }
+     catch(AuthenticationException ae){
+     return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
+     }
+     finally {
+     }
+     } */
 
 
     /**
      * Hard delete of a node and all children under it
+     *
      * @param request
      * @return
      * @throws IOException
@@ -298,26 +252,28 @@ public class JcrController extends AuthenticatedService
     @RequestMapping(method = RequestMethod.DELETE)
     public ResponseEntity<Tree> removeFolder(HttpServletRequest request) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
-        try (ContentSession session = getSession(request)) {
-            Root root = session.getLatestRoot();
-            Tree rootTree = getContentRoot(session);
-            Tree tree = getRelativeTree(rootTree, request.getRequestURI());
+        throw new RuntimeException("Not implemented exception");
+        /***
+         try (ContentSession session = getSession(request)) {
+         Root root = session.getLatestRoot();
+         Tree rootTree = getContentRoot(session);
+         Tree tree = getRelativeTree(rootTree, request.getRequestURI());
 
-            if (!tree.exists()) {
-                return new ResponseEntity<Tree>(HttpStatus.NOT_FOUND);
-            }else {
-                tree.remove();
-                root.commit();
-            }
+         if (!tree.exists()) {
+         return new ResponseEntity<Tree>(HttpStatus.NOT_FOUND);
+         }else {
+         tree.remove();
+         root.commit();
+         }
 
-            return new ResponseEntity<Tree>(HttpStatus.NO_CONTENT);
-        }
-        catch(AuthenticationException ae){
-            return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
-        }
-        finally {
-        }
-
+         return new ResponseEntity<Tree>(HttpStatus.NO_CONTENT);
+         }
+         catch(AuthenticationException ae){
+         return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
+         }
+         finally {
+         }
+         ***/
     }
 
 }

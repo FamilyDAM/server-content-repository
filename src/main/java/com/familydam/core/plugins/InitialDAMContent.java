@@ -17,6 +17,7 @@
 
 package com.familydam.core.plugins;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -33,8 +34,8 @@ public class InitialDAMContent extends InitialContent
 
         if (!builder.hasChildNode("dam")) {
             damNode = builder.child("dam");
-            damNode.setProperty(JCR_PRIMARYTYPE, NT_HIERARCHYNODE);
-            damNode.setProperty(JCR_NAME, "dam");
+            damNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            damNode.setProperty(JcrConstants.JCR_NAME, "dam");
             damNode.setProperty(JCR_CREATEDBY, "system");
         }else{
             damNode = builder.child("dam");
@@ -43,14 +44,14 @@ public class InitialDAMContent extends InitialContent
 
         if( !damNode.hasChildNode("documents") ){
             NodeBuilder documents = damNode.child("documents");
-            documents.setProperty(JCR_PRIMARYTYPE, NT_FOLDER);
-            documents.setProperty(JCR_NAME, "documents");
-            documents.setProperty(JCR_CREATEDBY, "system");
+            documents.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            documents.setProperty(JcrConstants.JCR_NAME, "documents");
+            documents.setProperty(JcrConstants.JCR_CREATED, "system");
         }
         if( !damNode.hasChildNode("photos") ){
             NodeBuilder photos = damNode.child("photos");
-            photos.setProperty(JCR_PRIMARYTYPE, NT_FOLDER);
-            photos.setProperty(JCR_NAME, "photos");
+            photos.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            photos.setProperty(JcrConstants.JCR_NAME, "photos");
             photos.setProperty(JCR_CREATEDBY, "system");
         }
 

@@ -20,29 +20,21 @@ package com.familydam.core.api;
 import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.jcr.Credentials;
-import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -58,24 +50,16 @@ public class AuthenticatedService
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    private ContentRepository contentRepository;
+    private Repository repository;
     //@Autowired private Root root;
 
     private SecurityProvider securityProvider;
 
 
-    protected Tree getContentRoot(ContentSession session) throws LoginException, NoSuchWorkspaceException
+    protected Node getContentRoot(Session session) throws RepositoryException
     {
-        Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
-        return tree.getChild(FamilyDAMConstants.DAM_ROOT);
-    }
-
-
-    protected Tree getRelativeTree(Tree root, String relativePath)
-    {
-        String _path = relativePath.substring(relativePath.indexOf('~') + 1);
-        return TreeUtil.getTree(root, _path);
+        Node root = session.getRootNode();
+        return root.getNode(FamilyDAMConstants.DAM_ROOT);
     }
 
 
@@ -88,14 +72,13 @@ public class AuthenticatedService
     }
 
 
-
-    ContentSession getSession(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException, AuthenticationException
+    Session getSession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
     {
         return getSession(request);
     }
 
 
-    ContentSession getSession(HttpServletRequest request) throws LoginException, NoSuchWorkspaceException, AuthenticationException
+    Session getSession(HttpServletRequest request) throws RepositoryException, AuthenticationException
     {
         Credentials credentials = null;
 
@@ -103,33 +86,35 @@ public class AuthenticatedService
         if (authorization != null && authorization.startsWith("Basic ")) {
             String[] basic =
                     Base64.decode(authorization.substring("Basic ".length())).split(":");
+            if( basic.length != 2 ){
+                throw new AuthenticationException();
+            }
             credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
         } else {
             String username = request.getParameter("j_username");
             String password = request.getParameter("j_password");
-            if( username != null && password != null ){
+            if (username != null && password != null) {
                 credentials = new SimpleCredentials(username, password.toCharArray());
             }
         }
 
-        if( credentials == null ){
+        if (credentials == null) {
             throw new AuthenticationException();
         }
 
-        ContentSession session = contentRepository.login(credentials, null);
+        Session session = repository.login(credentials, null);
         return session;
     }
 
 
-    ContentSession getSession(Credentials credentials) throws LoginException, NoSuchWorkspaceException, AuthenticationException
+    Session getSession(Credentials credentials) throws RepositoryException
     {
-        ContentSession session = contentRepository.login(credentials, null);
+        Session session = repository.login(credentials, null);
         return session;
     }
 
 
-
-    Session getRepositorySession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException,AuthenticationException
+    Session getRepositorySession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
     {
         Credentials credentials = null;
 
@@ -137,7 +122,7 @@ public class AuthenticatedService
         Cookie[] cookies = request.getCookies();
 
         Map<String, String> cookieMap = new HashMap<>();
-        if( cookies != null ) {
+        if (cookies != null) {
             for (Cookie cookie : cookies) {
                 cookieMap.put(cookie.getName(), cookie.getValue());
             }
@@ -155,24 +140,21 @@ public class AuthenticatedService
             response.addCookie(_cookie);
 
             request.getSession().setAttribute("x-auth-token", authorization);
-        }
-        else if (request.getParameter("token") != null ) {
+        } else if (request.getParameter("token") != null) {
             String[] basic = Base64.decode(request.getParameter("token").substring("Basic ".length())).split(":");
             credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-        }
-        else if (cookieMap.containsKey("x-auth-token") ) {
+        } else if (cookieMap.containsKey("x-auth-token")) {
             String[] basic = Base64.decode(cookieMap.get("authorization").substring("Basic ".length())).split(":");
             credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-        }
-        else {
+        } else {
             String username = request.getParameter("j_username");
             String password = request.getParameter("j_password");
-            if( username != null && password != null ){
+            if (username != null && password != null) {
                 credentials = new SimpleCredentials(username, password.toCharArray());
             }
         }
 
-        if( credentials == null ){
+        if (credentials == null) {
             throw new AuthenticationException();
         }
 
@@ -182,7 +164,8 @@ public class AuthenticatedService
     }
 
 
-    UserManager getUserManager(ContentSession session){
+    UserManager getUserManager(Session session) throws RepositoryException
+    {
         ConfigurationParameters defaultConfig = ConfigurationParameters.EMPTY;
         String defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         String defaultGroupPath = defaultConfig.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
@@ -192,14 +175,7 @@ public class AuthenticatedService
         customOptions.put(UserConstants.PARAM_USER_PATH, "/home/users");
 
 
-        UserManager userMgr = new UserManagerImpl(session.getLatestRoot(), NamePathMapper.DEFAULT, getSecurityProvider());
+        UserManager userMgr = null;//new UserManagerImpl(session.getRootNode(), NamePathMapper.DEFAULT, ConfigurationParameters.EMPTY);
         return userMgr;
-        /**
-         beforeAuthorizables.clear();
-         Iterator<Authorizable> iterator = userMgr.findAuthorizables("jcr:primaryType", null, org.apache.jackrabbit.api.security.user.UserManager.SEARCH_TYPE_AUTHORIZABLE);
-         while (iterator.hasNext()) {
-         beforeAuthorizables.add(iterator.next().getID());
-         }
-         **/
     }
 }

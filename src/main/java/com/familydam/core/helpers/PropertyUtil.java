@@ -17,7 +17,6 @@
 
 package com.familydam.core.helpers;
 
-import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -25,17 +24,18 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.value.BinaryValue;
-import org.springframework.util.MimeType;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.jcr.AccessDeniedException;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,7 +51,7 @@ public class PropertyUtil
      * @param node
      * @return
      */
-    public static Map readProperties(Tree node)
+    public static Map readProperties(Node node) throws RepositoryException
     {
         Map<String, Object> nodeProps = new HashMap();
 
@@ -60,20 +60,25 @@ public class PropertyUtil
         nodeProps.put(JcrConstants.JCR_NAME, node.getName());
 
         // get simple properties
-        for (PropertyState propertyState : node.getProperties()) {
+        PropertyIterator propertyIterator = node.getProperties();
+        while (propertyIterator.hasNext()) {
+            Property property = (Property)propertyIterator.next();
             // add all properties, but the binary content (to reduce size.)
             // binary content can be returned by a direct request for that node
-            if( !propertyState.getName().equals(JcrConstants.JCR_CONTENT) ) {
-                String _name = propertyState.getName();
-                nodeProps.put(_name, propertyState.getValue(propertyState.getType()));
+
+            if( !property.getName().equals(JcrConstants.JCR_CONTENT) ) {
+                String _name = property.getName();
+                nodeProps.put(_name, property.getString() ); //todo, make this dynamic based on type.
             }
         }
 
+        /**
         PropertyUtil.readPropertyTree(node, nodeProps);
 
-        if( node.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER) ) {
+        if( node.isNodeType(JcrConstants.NT_FILE) ) {
             PropertyUtil.readChildFolders(node, nodeProps);
         }
+         **/
 
 
         return nodeProps;
@@ -84,7 +89,7 @@ public class PropertyUtil
      * Walk the NT_UNSTRUCTURED tree adding any nest map or array objects
      * @param node
      * @param nodeProps
-     */
+
     public static void readPropertyTree(Tree node, Map<String, Object> nodeProps){
 
         for (Tree propTree : node.getChildren()) {
@@ -105,14 +110,14 @@ public class PropertyUtil
                 readPropertyTree(propTree, propMap);
             }
         }
-    }
+    }*/
 
 
     /**
      * Go down a level and add all NT_FOLDER nodes to "children" property
      * @param node
      * @param nodeProps
-     */
+
     public static void readChildFolders(Tree node, Map<String, Object> nodeProps){
 
         if( nodeProps.get(FamilyDAMConstants.CHILDREN) == null ){
@@ -125,13 +130,13 @@ public class PropertyUtil
                     || childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
                     || childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)) {
 
-                Map<String, Object> propMap = PropertyUtil.readProperties(childFolder);
+                //Map<String, Object> propMap = PropertyUtil.readProperties(childFolder);
 
-                ((List)nodeProps.get(FamilyDAMConstants.CHILDREN)).add(propMap);
+                //((List)nodeProps.get(FamilyDAMConstants.CHILDREN)).add(propMap);
             }
         }
 
-    }
+    }*/
 
 
 
@@ -180,6 +185,7 @@ public class PropertyUtil
     }
 
 
+    /**
     public static NodeUtil writeFileToNode(NodeUtil newNode, MultipartHttpServletRequest request) throws IOException, AccessDeniedException
     {
         if( request.getFileMap() != null )
@@ -215,8 +221,8 @@ public class PropertyUtil
         }
 
         return newNode;
-
     }
+     **/
 
 
 }
