@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,10 +57,6 @@ import java.util.Map;
 @RequestMapping("/api/import")
 public class ImportController extends AuthenticatedService
 {
-
-    //@Autowired
-    private NodeStore nodeStore;
-
 
     @RequestMapping(value = "/info")
     public ResponseEntity<Object> info(HttpServletRequest request, HttpServletResponse response,

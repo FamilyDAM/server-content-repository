@@ -49,9 +49,7 @@ public class AuthenticatedService
 {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private Repository repository;
-    //@Autowired private Root root;
+    @Autowired private Repository repository;
 
     private SecurityProvider securityProvider;
 
@@ -158,7 +156,6 @@ public class AuthenticatedService
             throw new AuthenticationException();
         }
 
-        Repository repository = JcrUtils.getRepository();
         Session session = repository.login(credentials, null);
         return session;
     }

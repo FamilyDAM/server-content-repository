@@ -79,11 +79,11 @@ public class DirectoryController extends AuthenticatedService
                     _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/"));
                     _node.put("children", new ArrayList());
 
-                    if ( node.isNodeType(JcrConstants.NT_FOLDER)
+                    if ( node.isNodeType(JcrConstants.NT_FILE) ) {
+                        _node.put("type", "file");
+                    } else if ( node.isNodeType(JcrConstants.NT_FOLDER)
                             || node.isNodeType(JcrConstants.NT_HIERARCHYNODE) ) {
                         _node.put("type", "folder");
-                    } else if ( node.isNodeType(JcrConstants.NT_FILE) ) {
-                        _node.put("type", "file");
                     }
 
                     _node.put("isReadOnly", false);
@@ -142,7 +142,7 @@ public class DirectoryController extends AuthenticatedService
         Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
         List<Map> childNodes = new ArrayList<>();
         for ( Node node : _childNodes ) {
-            if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER) || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_HIERARCHYNODE) ) {
+             if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER) ) {
                 Map _node = new HashMap();
                 _node.put("type", "folder");
                 _node.put("name", node.getName());

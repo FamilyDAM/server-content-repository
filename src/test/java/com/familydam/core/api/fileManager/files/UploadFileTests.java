@@ -18,23 +18,10 @@
 package com.familydam.core.api.fileManager.files;
 
 import com.familydam.core.FamilyDAM;
-import com.familydam.core.FamilyDAMConstants;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.core.data.FileDataStore;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.hamcrest.Matchers;
-import org.junit.After;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -43,33 +30,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.IntegrationTest;
 import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.fileUpload;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Created by mnimer on 9/17/14.
@@ -90,40 +62,15 @@ public class UploadFileTests
     public String port;
     public String rootUrl;
 
-    @Autowired private Oak oak;
+    @Autowired private Repository repository;
 
-
-
-    //@Before
-    public void setupMock() throws Exception
-    {
-        rootUrl = "http://localhost:" +port;
-
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
-    }
-
-
-    //@After
-    public void tearDown() throws Exception{
-        this.mockMvc
-                .perform(delete(rootUrl + "/~/documents/test/AppleiPhone4.jpeg"))
-                .andReturn();
-        this.mockMvc
-                .perform(delete(rootUrl + "/~/documents/test"))
-                .andReturn();
-        this.mockMvc
-                .perform(delete(rootUrl + "/~/documents/test/AppleiPhone4.jpeg"))
-                .andReturn();
-    }
 
     @Test
     public void jcrCopy() throws Exception
     {
-        String dir = "/~/documents";
-        String dirPath = dir.replace("~", FamilyDAMConstants.DAM_ROOT);
+        String dirPath = "/dam/documents";
 
         SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
-        Repository repository = JcrUtils.getRepository();
         Session session = repository.login(credentials, null);
 
 
@@ -154,7 +101,7 @@ public class UploadFileTests
         String mimeType = "image/jpg";
 
         Node testFolder = JcrUtils.getOrAddFolder(root, "test");
-        Node fileNode = JcrUtils.putFile(copyToDir, fileName, "application/octet-stream", new BufferedInputStream(new FileInputStream(file)) );
+        Node fileNode = JcrUtils.putFile(copyToDir, fileName, "image/jpg", new BufferedInputStream(new FileInputStream(file)) );
         //Node fileNode = JcrUtils.putFile(copyToDir, fileName, "application/octet-stream", new BufferedInputStream(new FileInputStream(file)) );
         //fileNode.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
         //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
@@ -167,32 +114,34 @@ public class UploadFileTests
         /////////////////////////////////////////
         Node docs = session.getNode(dirPath);
         Iterable<Node> children = JcrUtils.getChildNodes(docs);
-        int count = 0;
+        boolean exists = false;
 
         for (Node child : children) {
-            count++;
+            child.toString();
+            if( child.getName().equalsIgnoreCase(fileName) )
+            {
+                exists = true;
+            }
         }
 
-        Assert.assertEquals(1, count);
+        Assert.assertTrue(exists);
         session.logout();
 
         /////////////////////////////////////////
         Session session2 = repository.login(credentials, null);
-        Node root2 = session2.getNode("/");
         Node docs2 = session2.getNode(dirPath);
-        Iterable<Node> children2 = JcrUtils.getChildNodes(root2);
-        Iterable<Node> children3 = JcrUtils.getChildNodes(docs2);
-        int count2 = 0;
-        int count3 = 0;
+        Iterable<Node> children2 = JcrUtils.getChildNodes(docs2);
+        boolean count2Exists = false;
 
         for (Node child : children2) {
-            count2++;
+            if( child.getName().equalsIgnoreCase(fileName) )
+            {
+                count2Exists = true;
+                child.remove();
+            }
         }
-        for (Node child : children3) {
-            count3++;
-        }
-
-        Assert.assertEquals(1, count2);
+        Assert.assertTrue(count2Exists);
+        session2.save();
     }
 
 
