@@ -53,7 +53,7 @@ public class DirectoryController extends AuthenticatedService
     {
         Session session = null;
         try{
-            session = getSession(request);
+            session = getSession(request, response);
             Node root = session.getRootNode();
             Node contentRoot = getContentRoot(session);
             path = path.replace("/~/", "/");
@@ -72,18 +72,18 @@ public class DirectoryController extends AuthenticatedService
             for (Node node : _childNodes )
             {
                 if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)
-                        || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_HIERARCHYNODE)) {
+                        || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE)) {
                     Map _node = new HashMap();
                     _node.put("name", node.getName());
                     _node.put("path", node.getPath().replace("/dam/", "/~/"));
                     _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/"));
                     _node.put("children", new ArrayList());
 
-                    if ( node.isNodeType(JcrConstants.NT_FILE) ) {
-                        _node.put("type", "file");
-                    } else if ( node.isNodeType(JcrConstants.NT_FOLDER)
-                            || node.isNodeType(JcrConstants.NT_HIERARCHYNODE) ) {
+
+                    if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER) ) {
                         _node.put("type", "folder");
+                    } else if ( node.isNodeType(JcrConstants.NT_FILE) ) {
+                        _node.put("type", "file");
                     }
 
                     _node.put("isReadOnly", false);
@@ -111,7 +111,7 @@ public class DirectoryController extends AuthenticatedService
     {
         Session session = null;
         try{
-            session = getSession(request);
+            session = getSession(request, response);
             Node root = session.getRootNode();
             Node contentRoot = getContentRoot(session);
             if (path != null && path.length()>1) {

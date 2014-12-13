@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -66,20 +67,24 @@ public class JcrController extends AuthenticatedService
     {
         Session session = null;
         try {
-            session = getSession(request);
+            session = getSession(request, response);
             Node contentRoot = getContentRoot(session);
             // walk the tree and get a reference to the requested path, or return a not found status
-            Node node = contentRoot.getNode(request.getRequestURI());
+            Node node = contentRoot.getNode(request.getRequestURI().replace("/~/", ""));
 
             if (node.isNodeType(JcrConstants.NT_FILE)) {
                 InputStream is = JcrUtils.readFile(node);
 
-                byte[] imageBytes = IOUtils.toByteArray(is);
-                response.setContentLength(imageBytes.length);
-                response.setContentType(node.getProperty(JcrConstants.JCR_MIMETYPE).getString());
-                response.getOutputStream().write(imageBytes);
+                //byte[] imageBytes = IOUtils.toByteArray(is);
+                //response.setContentLength(imageBytes.length);
+                //response.setContentType(node.getProperty(JcrConstants.JCR_MIMETYPE).getString());
+                //response.getOutputStream().write(imageBytes);
+                //response.getOutputStream().flush();
 
-                return new ResponseEntity<Object>(HttpStatus.OK);
+
+                InputStreamResource inputStreamResource = new InputStreamResource(is);
+                //response.setHeader("content-length", 1000);
+                return new ResponseEntity(inputStreamResource, HttpStatus.OK);
             } else {
 
                 // return unstructured node of name/value properties

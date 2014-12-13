@@ -70,28 +70,45 @@ public class AuthenticatedService
     }
 
 
+
     Session getSession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
     {
-        return getSession(request);
-    }
-
-
-    Session getSession(HttpServletRequest request) throws RepositoryException, AuthenticationException
-    {
         Credentials credentials = null;
+        Cookie[] cookies = request.getCookies();
+
+        Map<String, String> cookieMap = new HashMap<>();
+        if( cookies != null ) {
+            for (Cookie cookie : cookies) {
+                cookieMap.put(cookie.getName(), cookie.getValue());
+            }
+        }
+
 
         String authorization = request.getHeader("Authorization");
         if (authorization != null && authorization.startsWith("Basic ")) {
             String[] basic =
                     Base64.decode(authorization.substring("Basic ".length())).split(":");
-            if( basic.length != 2 ){
-                throw new AuthenticationException();
-            }
             credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-        } else {
+
+            Cookie _cookie = new Cookie("x-auth-token", authorization);
+            _cookie.setDomain(".localhost");
+            _cookie.setHttpOnly(true);
+            response.addCookie(_cookie);
+
+            request.getSession().setAttribute("x-auth-token", authorization);
+        }
+        else if (cookieMap.containsKey("x-auth-token") ) {
+            String[] basic = Base64.decode(cookieMap.get("authorization").substring("Basic ".length())).split(":");
+            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+        }
+        else if (request.getParameter("token") != null ) {
+            String[] basic = Base64.decode(request.getParameter("token").substring("Basic ".length())).split(":");
+            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+        }
+        else {
             String username = request.getParameter("j_username");
             String password = request.getParameter("j_password");
-            if (username != null && password != null) {
+            if( username != null && password != null ){
                 credentials = new SimpleCredentials(username, password.toCharArray());
             }
         }

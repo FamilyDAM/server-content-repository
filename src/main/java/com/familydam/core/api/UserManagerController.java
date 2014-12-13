@@ -183,11 +183,12 @@ public class UserManagerController extends AuthenticatedService
      * @throws RepositoryException
      */
     @RequestMapping(value = "/{username}", method = RequestMethod.GET)
-    public ResponseEntity<Map> getUser(HttpServletRequest request, @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
+    public ResponseEntity<Map> getUser(HttpServletRequest request, HttpServletResponse response,
+                                       @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try{
-            session = getSession(request);
+            session = getSession(request, response);
             //UserManager userManager = getUserManager(session);
             //Authorizable user = userManager.getAuthorizable(username);
             //NodeUtil userNode = new NodeUtil(session.getLatestRoot().getTree(user.getPath()));
@@ -220,11 +221,12 @@ public class UserManagerController extends AuthenticatedService
      * @throws RepositoryException
      */
     @RequestMapping(value = "/{username}", method = RequestMethod.POST)
-    public ResponseEntity<Map> updateUser(HttpServletRequest request, @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
+    public ResponseEntity<Map> updateUser(HttpServletRequest request, HttpServletResponse response,
+                                          @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try {
-            session = getSession(request);
+            session = getSession(request, response);
             //UserManager userManager = getUserManager(session);
             //Authorizable user = userManager.getAuthorizable(username);
 
