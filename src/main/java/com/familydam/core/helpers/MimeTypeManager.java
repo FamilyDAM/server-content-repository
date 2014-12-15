@@ -83,6 +83,18 @@ public enum MimeTypeManager
         return false;
     }
 
+    public static boolean isSupportedImageMimeType(String extension)
+    {
+        for (MimeTypeManager mimeTypeManager : MimeTypeManager.values() )
+        {
+            if( mimeTypeManager.mimeType.equalsIgnoreCase(extension) || mimeTypeManager.extension.equalsIgnoreCase(extension) )
+            {
+                return mimeTypeManager.mimeType.startsWith("image");
+            }
+        }
+        return false;
+    }
+
     public static String getMimeType(String pathOrExt)
     {
         int fileSep = pathOrExt.lastIndexOf(".");

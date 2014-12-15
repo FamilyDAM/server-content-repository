@@ -1,0 +1,13 @@
+<dam='http://familydam.com/ns/1.0'>
+
+[dam:extensible] mixin
+- * (UNDEFINED) multiple
+- * (UNDEFINED)
+
+[dam:taggable] mixin
+- dam:tags (STRING) multiple
+
+[dam:image] mixin
++ dam:metadata (nt:folder)
++ dam:renditions (nt:folder)
+

@@ -20,17 +20,26 @@ package com.familydam.core.plugins;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Created by mnimer on 9/17/14.
  */
 public class InitialDAMContent extends InitialContent
 {
+    NodeStore store;
+
+
+    public InitialDAMContent(NodeStore store)
+    {
+        this.store = store;
+    }
+
 
     @Override public void initialize(NodeBuilder builder)
     {
-        NodeBuilder damNode;
 
+        NodeBuilder damNode;
 
         if (!builder.hasChildNode("dam")) {
             damNode = builder.child("dam");
@@ -58,7 +67,20 @@ public class InitialDAMContent extends InitialContent
         // add default admin user.
         //   /rep:security/rep:authorizables/rep:users/a/ad/admin
 
-
         super.initialize(builder);
+
+
+        //InputStream is = this.getClass().getClassLoader().getResourceAsStream("familydam_nodetypes.cnd");
+
+/**
+        NodeState base = builder.getNodeState();
+        NodeTypeRegistry.register(new SystemRoot(
+                store, new EditorHook(new CompositeEditorProvider(
+                new NamespaceEditorProvider(),
+                new TypeEditorProvider())))
+                , is, "familydam node types");
+        NodeState target = store.getRoot();
+        target.compareAgainstBaseState(base, new ApplyDiff(builder));
+**/
     }
 }

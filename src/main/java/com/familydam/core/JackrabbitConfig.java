@@ -17,16 +17,19 @@
 
 package com.familydam.core;
 
-import com.familydam.core.observers.ImageNodeObserver;
+import com.familydam.core.observers.ImageExifObserver;
+import com.familydam.core.observers.ImageThumbnailObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
+import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
+import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -35,9 +38,18 @@ import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.Repository;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -52,7 +64,31 @@ public class JackrabbitConfig
     public Repository jcrRepository()
     {
         try {
-            Repository repository = getJcr().createRepository();
+            ScheduledExecutorService executor = Executors.newScheduledThreadPool(3);
+            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
+
+            // create Observers
+            ImageThumbnailObserver imageThumbnailObserver = new ImageThumbnailObserver("/dam");
+            ImageExifObserver imageExifObserver = new ImageExifObserver("/dam");
+
+            // create JCR object
+            Jcr jcr = new Jcr(getOak())
+                    .with(executor)
+                    .with(new BackgroundObserver(imageThumbnailObserver, observerExecutor))
+                    .with(new BackgroundObserver(imageExifObserver, observerExecutor))
+                    .withAsyncIndexing();
+
+
+            // Create repository
+            Repository repository = jcr.createRepository();
+
+            // Using the CND file, make sure all of the required mix-ins have been created.
+            registerCustomNodeTypes(repository);
+
+            // Add Session
+            imageThumbnailObserver.setRepository(repository);
+            imageExifObserver.setRepository(repository);
+
             return repository;
         }
         catch (Exception ex) {
@@ -62,42 +98,77 @@ public class JackrabbitConfig
     }
 
 
-    private Jcr getJcr()
+    /**
+     * Using the CND file, make sure all of the required mix-ins have been created.
+     * @param repository
+     */
+    private void registerCustomNodeTypes(Repository repository)
     {
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(3);
-        ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(3);
+        Session session = null;
+        try {
+            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream("familydam_nodetypes.cnd");
+            // Get the JackrabbitNodeTypeManager from the Workspace.
+            // Note that it must be cast from the generic JCR NodeTypeManager to the
+            // Jackrabbit-specific implementation.
+            NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
 
-        Observer imageObserver = new BackgroundObserver(new ImageNodeObserver("/dam"), observerExecutor);
 
-        Jcr jcr = new Jcr(getOak())
-                .with(executor);
-        //.with(new BackgroundObserver(new ImageNodeObserver(), observerExecutor));
-        return jcr;
+            // TODO: for simplicity it's currently either registration or unregistration as nt-modifications are immediately persisted.
+            String registerCnd = org.apache.commons.io.IOUtils.toString(is);
+            List<String> unregisterNames = new ArrayList<String>();
+
+            NodeTypeManager ntMgr = session.getWorkspace().getNodeTypeManager();
+            if (registerCnd != null) {
+                StringReader reader = new StringReader(registerCnd);
+                DefinitionBuilderFactory<NodeTypeTemplate, NamespaceRegistry> factory =
+                        new TemplateBuilderFactory(ntMgr,
+                                session.getValueFactory(),
+                                session.getWorkspace().getNamespaceRegistry());
+
+                CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry> cndReader =
+                        new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(reader, "davex", factory);
+
+                List<NodeTypeTemplate> ntts = cndReader.getNodeTypeDefinitions();
+                ntMgr.registerNodeTypes(ntts.toArray(new NodeTypeTemplate[ntts.size()]), true);
+            } else if (!unregisterNames.isEmpty()) {
+                //ntMgr.unregisterNodeTypes(unregisterNames.toArray(new String[unregisterNames.size()]));
+            }
+
+            //CndImporter.registerNodeTypes(new InputStreamReader(is), session, true);
+
+            session.save();
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }finally {
+            if( session != null) session.logout();
+        }
     }
 
 
     private Oak getOak()
     {
         try {
-            File repoDir = new File("./repository");
+            File repoDir = new File("./familydam-repo");
+            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
 
             FileBlobStore fileBlobStore = new FileBlobStore(repoDir.getAbsolutePath());
             FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
+            //int maxFileSize = 1024 * 1024; //1gig
+            //FileStore source = new FileStore(repoDir, maxFileSize, false);
             NodeStore segmentNodeStore = new SegmentNodeStore(source);
 
             Oak oak = new Oak(segmentNodeStore)
                     .with("familyDAM")
-                    .with(new InitialDAMContent())       // add initial content and folder structure
+                    .with(new InitialDAMContent(segmentNodeStore))       // add initial content and folder structure
                             //.with(new SecurityProviderImpl())  // use the default security
                             //.with(new DefaultTypeEditor())     // automatically set default types
                             //.with(new NameValidatorProvider()) // allow only valid JCR names
                             //.with(new OpenSecurityProvider())
                             //.with(new PropertyIndexHook())     // simple indexing support
                             //.with(new PropertyIndexProvider()) // search support for the indexes
-                            //.with(new ImageNodeObserver())
                     .with(new CommitDAMHook())
                     .withAsyncIndexing();
-
 
             return oak;
         }
@@ -108,15 +179,14 @@ public class JackrabbitConfig
     }
 
 
-
-
-
     @Bean
     public ServletRegistrationBean webDavServlet()
     {
-        SimpleWebdavServlet servlet = new SimpleWebdavServlet() {
+        SimpleWebdavServlet servlet = new SimpleWebdavServlet()
+        {
             @Override
-            public Repository getRepository() {
+            public Repository getRepository()
+            {
                 return jcrRepository();
             }
         };
@@ -129,12 +199,15 @@ public class JackrabbitConfig
         return bean;
     }
 
+
     @Bean
     public ServletRegistrationBean davexServlet()
     {
-        JCRWebdavServerServlet servlet = new JCRWebdavServerServlet() {
+        JCRWebdavServerServlet servlet = new JCRWebdavServerServlet()
+        {
             @Override
-            protected Repository getRepository() {
+            protected Repository getRepository()
+            {
                 return jcrRepository();
             }
         };
@@ -153,11 +226,8 @@ public class JackrabbitConfig
     }
 
 
-
-
     /****
-     @Bean
-     public ContentRepository contentRepository()
+     @Bean public ContentRepository contentRepository()
      {
      try {
      ContentRepository repository = oak().createContentRepository();
@@ -170,11 +240,8 @@ public class JackrabbitConfig
      }*****/
 
 
-
-
     /**
-     @Bean
-     public ServletRegistrationBean oakServlet()
+     @Bean public ServletRegistrationBean oakServlet()
      {
      OakServlet servlet = new OakServlet(contentRepository());
      ServletRegistrationBean bean = new ServletRegistrationBean(servlet, "/oak/*");

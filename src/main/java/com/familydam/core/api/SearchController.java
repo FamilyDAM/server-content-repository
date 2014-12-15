@@ -15,24 +15,19 @@
  *     along with the FamilyDAM Project.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.familydam.core;
+package com.familydam.core.api;
 
 /**
- * Created by mnimer on 9/19/14.
+ * Created by mnimer on 12/13/14.
  */
-public class FamilyDAMConstants
+public class SearchController
 {
-    // paths
-    public static final String DAM_ROOT = "dam";
-    public static final String KEYWORDS = "dam:tags";
-    public static final String METADATA = "dam:metadata";
-    public static final String RENDITIONS = "dam:renditions";
-    public static final String DAM_IMAGE = "dam:image";
 
-    //Node props
-    public static final String CHILDREN = "children";
-
-    //
-    public static final String THUMBNAIL200 = "thumbnail.200";
-
+    /****
+     * example
+     SELECT * FROM [nt:file]
+     WHERE [jcr:mimeType] = 'image/jpg'
+     ORDER BY [jcr:lastModified] DESC
+     *
+     */
 }

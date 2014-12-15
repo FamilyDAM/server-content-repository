@@ -17,6 +17,7 @@
 
 package com.familydam.core.api;
 
+import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.PropertyUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -73,18 +74,19 @@ public class JcrController extends AuthenticatedService
             Node node = contentRoot.getNode(request.getRequestURI().replace("/~/", ""));
 
             if (node.isNodeType(JcrConstants.NT_FILE)) {
-                InputStream is = JcrUtils.readFile(node);
 
-                //byte[] imageBytes = IOUtils.toByteArray(is);
-                //response.setContentLength(imageBytes.length);
-                //response.setContentType(node.getProperty(JcrConstants.JCR_MIMETYPE).getString());
-                //response.getOutputStream().write(imageBytes);
-                //response.getOutputStream().flush();
+                Node imageNode = node;
+                Node thumbnailNode = JcrUtils.getNodeIfExists(node, FamilyDAMConstants.RENDITIONS +"/" +FamilyDAMConstants.THUMBNAIL200);
+                if( thumbnailNode == null ) {
+                    imageNode = thumbnailNode;
+                }
 
-
+                InputStream is = JcrUtils.readFile(imageNode);
                 InputStreamResource inputStreamResource = new InputStreamResource(is);
-                //response.setHeader("content-length", 1000);
+                //response.setHeader("content-length", 1000); //todo set.
+
                 return new ResponseEntity(inputStreamResource, HttpStatus.OK);
+
             } else {
 
                 // return unstructured node of name/value properties

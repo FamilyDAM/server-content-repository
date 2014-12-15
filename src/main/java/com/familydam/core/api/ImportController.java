@@ -35,7 +35,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
@@ -135,10 +137,13 @@ public class ImportController extends AuthenticatedService
                     Node fileNode = JcrUtils.putFile(copyToDir, fileName, mimeType, new BufferedInputStream(new FileInputStream(file)) );
                     //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
 
+                    // apply mixins
+                    applyMixins(mimeType, fileNode);
+
                     session.save();
 
                     MultiValueMap headers = new HttpHeaders();
-                    headers.add("location", fileNode.getPath().replace("/dam/", "/~/"));
+                    headers.add("location", fileNode.getPath().replace("/" +FamilyDAMConstants.DAM_ROOT +"/", "/~/")); // return
                     return new ResponseEntity<Object>(headers, HttpStatus.CREATED);
                 }
                 catch (Exception ex) {
@@ -167,5 +172,29 @@ public class ImportController extends AuthenticatedService
         }
 
         return new ResponseEntity<Object>(HttpStatus.NOT_FOUND);
+    }
+
+
+    private void applyMixins(String mimeType, Node fileNode) throws RepositoryException
+    {
+        //first assign the right mixins
+        // supports String[] TAGS
+        fileNode.addMixin("dam:taggable");
+        // catch all to allow any property
+        fileNode.addMixin("dam:extensible");
+
+
+        // Check the mime type to decide if it's more then a generic file
+        if(MimeTypeManager.isSupportedImageMimeType(mimeType))
+        {
+            fileNode.addMixin("dam:image");
+            // add default sub-nodes
+            if( !fileNode.hasNode(FamilyDAMConstants.METADATA) ) {
+                fileNode.addNode(FamilyDAMConstants.METADATA, NodeType.NT_FOLDER);
+            }
+            if( !fileNode.hasNode(FamilyDAMConstants.RENDITIONS) ) {
+                fileNode.addNode(FamilyDAMConstants.RENDITIONS, NodeType.NT_FOLDER);
+            }
+        }
     }
 }

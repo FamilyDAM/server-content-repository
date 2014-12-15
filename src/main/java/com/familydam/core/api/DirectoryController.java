@@ -45,6 +45,49 @@ import java.util.Map;
 public class DirectoryController extends AuthenticatedService
 {
 
+    @RequestMapping(value = "/tree", method = RequestMethod.GET)
+    public ResponseEntity<List<Map>> listDirectoryTree(
+            HttpServletRequest request, HttpServletResponse response,
+            @RequestParam(value = "root", required = false, defaultValue = "/") String path)
+            throws RepositoryException
+    {
+        Session session = null;
+        try{
+            session = getSession(request, response);
+            Node root = session.getRootNode();
+            Node contentRoot = getContentRoot(session);
+            if (path != null && path.length()>1) {
+                if( path.startsWith("/"))
+                {
+                    path = path.substring(1);
+                }
+                contentRoot = contentRoot.getNode(path);
+            }
+
+            List<Map> nodes = walkDirectoryTree(contentRoot);
+            return new ResponseEntity<>(nodes, HttpStatus.OK);
+
+        }
+        catch (AuthenticationException ae) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        catch (Exception ae) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }finally {
+            if( session != null ) session.logout();
+        }
+    }
+
+
+
+    /**
+     * List all directories visible by a user.
+     * @param request
+     * @param response
+     * @param path
+     * @return
+     * @throws RepositoryException
+     */
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<List<Map>> listDirectoryItems(
             HttpServletRequest request, HttpServletResponse response,
@@ -103,41 +146,13 @@ public class DirectoryController extends AuthenticatedService
     }
 
 
-    @RequestMapping(value = "/tree", method = RequestMethod.GET)
-    public ResponseEntity<List<Map>> listDirectoryTree(
-            HttpServletRequest request, HttpServletResponse response,
-            @RequestParam(value = "root", required = false, defaultValue = "/") String path)
-            throws RepositoryException
-    {
-        Session session = null;
-        try{
-            session = getSession(request, response);
-            Node root = session.getRootNode();
-            Node contentRoot = getContentRoot(session);
-            if (path != null && path.length()>1) {
-                if( path.startsWith("/"))
-                {
-                    path = path.substring(1);
-                }
-                contentRoot = contentRoot.getNode(path);
-            }
-
-            List<Map> nodes = walkTree(contentRoot);
-            return new ResponseEntity<>(nodes, HttpStatus.OK);
-
-        }
-        catch (AuthenticationException ae) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-        catch (Exception ae) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }finally {
-            if( session != null ) session.logout();
-        }
-    }
-
-
-    private List<Map> walkTree(Node root) throws RepositoryException
+    /**
+     * Recursively walk jcr tree and find directories that the user can see.
+     * @param root
+     * @return
+     * @throws RepositoryException
+     */
+    private List<Map> walkDirectoryTree(Node root) throws RepositoryException
     {
         Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
         List<Map> childNodes = new ArrayList<>();
@@ -148,7 +163,7 @@ public class DirectoryController extends AuthenticatedService
                 _node.put("name", node.getName());
                 _node.put("path", node.getPath().replace("/dam/", "/~/"));
                 _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/"));
-                _node.put("children", walkTree(node));
+                _node.put("children", walkDirectoryTree(node));
                 _node.put("isReadOnly", false);
                 childNodes.add(_node);
             }
