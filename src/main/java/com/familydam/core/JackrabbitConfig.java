@@ -74,7 +74,7 @@ public class JackrabbitConfig
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
-                    .with(new BackgroundObserver(imageThumbnailObserver, observerExecutor))
+                    //.with(new BackgroundObserver(imageThumbnailObserver, observerExecutor))
                     .with(new BackgroundObserver(imageExifObserver, observerExecutor))
                     .withAsyncIndexing();
 

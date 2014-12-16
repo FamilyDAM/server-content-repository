@@ -71,14 +71,21 @@ public class JcrController extends AuthenticatedService
             session = getSession(request, response);
             Node contentRoot = getContentRoot(session);
             // walk the tree and get a reference to the requested path, or return a not found status
-            Node node = contentRoot.getNode(request.getRequestURI().replace("/~/", ""));
+            String _relativePath = request.getRequestURI().replace("/~/", "").replace("%20", " ");
+            Node node = contentRoot.getNode(_relativePath);
 
             if (node.isNodeType(JcrConstants.NT_FILE)) {
 
                 Node imageNode = node;
-                Node thumbnailNode = JcrUtils.getNodeIfExists(node, FamilyDAMConstants.RENDITIONS +"/" +FamilyDAMConstants.THUMBNAIL200);
-                if( thumbnailNode == null ) {
-                    imageNode = thumbnailNode;
+
+                // check for a rendition different then the original
+                String rendition = request.getParameter("rendition");
+                if( rendition != null )
+                {
+                    Node thumbnailNode = JcrUtils.getNodeIfExists(node, FamilyDAMConstants.RENDITIONS + "/" +rendition);
+                    if (thumbnailNode != null) {
+                        imageNode = thumbnailNode;
+                    }
                 }
 
                 InputStream is = JcrUtils.readFile(imageNode);
