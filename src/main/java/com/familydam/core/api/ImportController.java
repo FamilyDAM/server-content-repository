@@ -17,20 +17,16 @@
 
 package com.familydam.core.api;
 
-import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
-import com.drew.metadata.Metadata;
-import com.drew.metadata.MetadataException;
-import com.drew.metadata.exif.ExifIFD0Directory;
-import com.drew.metadata.jpeg.JpegDirectory;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.MimeTypeManager;
+import com.familydam.core.services.ImageRenditionsService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.imgscalr.Scalr;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,26 +36,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.imageio.ImageIO;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.nodetype.NodeType;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,6 +62,7 @@ import java.util.Map;
 @RequestMapping("/api/import")
 public class ImportController extends AuthenticatedService
 {
+    @Autowired private ImageRenditionsService imageRenditionsService;
 
     @RequestMapping(value = "/info")
     public ResponseEntity<Object> info(HttpServletRequest request, HttpServletResponse response,
@@ -155,13 +145,6 @@ public class ImportController extends AuthenticatedService
                         relativePath = dirPath.substring(1);
                     }
 
-                    Node _checkFilePath = JcrUtils.getNodeIfExists(root, relativePath +"/" +fileName);
-                    if( _checkFilePath != null )
-                    {
-                        session.getWorkspace().getVersionManager().checkout(_checkFilePath.getPath());
-                    }
-
-
 
                     // Upload the FILE
                     Node fileNode = JcrUtils.putFile(copyToDir, fileName, mimeType, new BufferedInputStream(new FileInputStream(file)) );
@@ -172,11 +155,18 @@ public class ImportController extends AuthenticatedService
 
                     session.save();
 
-                    // Create a thumbnail (rotated to the right angle)
-                    rotateAndScaleThumbnail(session, fileNode);
-
-                    // save the new file as a "versioned" file
-                    session.getWorkspace().getVersionManager().checkin(fileNode.getPath());
+                    // Create a thumbnail (rotated & scaled)
+                    if( fileNode.isNodeType("dam:image") ) {
+                        try {
+                            BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, fileNode);
+                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, fileNode, rotatedImage, 200, Scalr.Method.AUTOMATIC);
+                            String renditionPath = imageRenditionsService.saveRendition(session, fileNode, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
+                            session.save();
+                        }
+                        catch (RepositoryException | IOException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
 
 
                     MultiValueMap headers = new HttpHeaders();
@@ -194,21 +184,21 @@ public class ImportController extends AuthenticatedService
         }
         catch (AuthenticationException ae) {
             ae.printStackTrace();
-            return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         catch (IOException ex) {
             ex.printStackTrace();
-            return new ResponseEntity<Object>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         catch (Exception ex) {
             ex.printStackTrace();
-            return new ResponseEntity<Object>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         finally {
             if( session != null ) session.logout();
         }
 
-        return new ResponseEntity<Object>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
 
@@ -229,98 +219,13 @@ public class ImportController extends AuthenticatedService
             fileNode.addMixin("dam:image");
             // add default sub-nodes
             if( !fileNode.hasNode(FamilyDAMConstants.METADATA) ) {
-                fileNode.addNode(FamilyDAMConstants.METADATA, NodeType.NT_FOLDER);
+                //fileNode.addNode(FamilyDAMConstants.METADATA, NodeType.NT_UNSTRUCTURED);
             }
             if( !fileNode.hasNode(FamilyDAMConstants.RENDITIONS) ) {
-                fileNode.addNode(FamilyDAMConstants.RENDITIONS, NodeType.NT_FOLDER);
+                //fileNode.addNode(FamilyDAMConstants.RENDITIONS, NodeType.NT_FOLDER);
             }
 
         }
     }
 
-
-
-    private void rotateAndScaleThumbnail(Session session, Node node) throws RepositoryException, IOException, ImageProcessingException, MetadataException
-    {
-        try {
-            InputStream is = JcrUtils.readFile(node);
-            Metadata metadata = ImageMetadataReader.readMetadata(is);
-
-
-            ExifIFD0Directory exifIFD0Directory = metadata.getDirectory(ExifIFD0Directory.class);
-            JpegDirectory jpegDirectory = (JpegDirectory) metadata.getDirectory(JpegDirectory.class);
-
-            int orientation = 1;
-            try {
-                orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
-            }
-            catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            int width = jpegDirectory.getImageWidth();
-            int height = jpegDirectory.getImageHeight();
-
-            AffineTransform affineTransform = new AffineTransform();
-
-            switch (orientation) {
-                case 1:
-                    break;
-                case 2: // Flip X
-                    affineTransform.scale(-1.0, 1.0);
-                    affineTransform.translate(-width, 0);
-                    break;
-                case 3: // PI rotation
-                    affineTransform.translate(width, height);
-                    affineTransform.rotate(Math.PI);
-                    break;
-                case 4: // Flip Y
-                    affineTransform.scale(1.0, -1.0);
-                    affineTransform.translate(0, -height);
-                    break;
-                case 5: // - PI/2 and Flip X
-                    affineTransform.rotate(-Math.PI / 2);
-                    affineTransform.scale(-1.0, 1.0);
-                    break;
-                case 6: // -PI/2 and -width
-                    affineTransform.translate(height, 0);
-                    affineTransform.rotate(Math.PI / 2);
-                    break;
-                case 7: // PI/2 and Flip
-                    affineTransform.scale(-1.0, 1.0);
-                    affineTransform.translate(-height, 0);
-                    affineTransform.translate(0, width);
-                    affineTransform.rotate(3 * Math.PI / 2);
-                    break;
-                case 8: // PI / 2
-                    affineTransform.translate(0, width);
-                    affineTransform.rotate(3 * Math.PI / 2);
-                    break;
-                default:
-                    break;
-            }
-
-            AffineTransformOp affineTransformOp = new AffineTransformOp(affineTransform, AffineTransformOp.TYPE_BILINEAR);
-
-
-            InputStream is2 = JcrUtils.readFile(node);
-            BufferedImage image = ImageIO.read(is2);
-            //BufferedImage thumbnail = Scalr.resize(image, Scalr.Method.AUTOMATIC, 200);//, affineTransformOp);
-            BufferedImage thumbnail = Scalr.apply(image, affineTransformOp);
-
-
-            // Save Image
-            Node renditions = JcrUtils.getOrAddNode(node, FamilyDAMConstants.RENDITIONS, JcrConstants.NT_FOLDER);
-
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            ImageIO.write(thumbnail, "jpg", byteArrayOutputStream);
-            InputStream thumbnail_is = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-
-            JcrUtils.putFile(renditions, FamilyDAMConstants.THUMBNAIL200, MimeTypeManager.JPG.name(), thumbnail_is);
-
-            session.save();
-        }catch(Exception ex){
-            ex.printStackTrace();
-        }
-    }
 }

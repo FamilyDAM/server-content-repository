@@ -18,9 +18,11 @@
 package com.familydam.core;
 
 import com.familydam.core.observers.ImageExifObserver;
-import com.familydam.core.observers.ImageThumbnailObserver;
+import com.familydam.core.observers.ImagePHashObserver;
+import com.familydam.core.observers.ImageRenditionsObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
+import com.familydam.core.services.ImageRenditionsService;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,6 +62,8 @@ import java.util.concurrent.ScheduledExecutorService;
 @Configuration
 public class JackrabbitConfig
 {
+    @Autowired()
+    private ImageRenditionsService imageRenditionsService;
 
     @Bean
     public Repository jcrRepository()
@@ -68,14 +73,20 @@ public class JackrabbitConfig
             ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
 
             // create Observers
-            ImageThumbnailObserver imageThumbnailObserver = new ImageThumbnailObserver("/dam");
+            // create thumbnails
+            ImageRenditionsObserver imageRenditionObserver = new ImageRenditionsObserver("/dam");
+            imageRenditionObserver.setImageRenditionsService(imageRenditionsService);
+            // parse out exif metadata
             ImageExifObserver imageExifObserver = new ImageExifObserver("/dam");
+            // generate a phash for each image (so we can find like photos & duplicates)
+            ImagePHashObserver imagePHashObserver = new ImagePHashObserver("/dam");
 
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
-                    //.with(new BackgroundObserver(imageThumbnailObserver, observerExecutor))
+                    //.with(new BackgroundObserver(imageRenditionObserver, observerExecutor))
                     .with(new BackgroundObserver(imageExifObserver, observerExecutor))
+                    .with(new BackgroundObserver(imagePHashObserver, observerExecutor))
                     .withAsyncIndexing();
 
 
@@ -86,8 +97,9 @@ public class JackrabbitConfig
             registerCustomNodeTypes(repository);
 
             // Add Session
-            imageThumbnailObserver.setRepository(repository);
+            imageRenditionObserver.setRepository(repository);
             imageExifObserver.setRepository(repository);
+            imagePHashObserver.setRepository(repository);
 
             return repository;
         }

@@ -8,6 +8,6 @@
 - dam:tags (STRING) multiple
 
 [dam:image] mixin
-+ dam:metadata (nt:folder)
++ dam:metadata (nt:unstructured)
 + dam:renditions (nt:folder)
 

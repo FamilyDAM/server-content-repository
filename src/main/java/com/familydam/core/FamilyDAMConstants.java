@@ -34,5 +34,6 @@ public class FamilyDAMConstants
 
     //
     public static final String THUMBNAIL200 = "thumbnail.200";
+    public static final String WEB1024 = "web.1024";
 
 }
