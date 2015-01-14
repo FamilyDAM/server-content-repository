@@ -1,17 +1,13 @@
 package com.familydam.core;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.embedded.MultipartConfigFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 
 import javax.servlet.MultipartConfigElement;
 
-@Configuration
-@ComponentScan
-@EnableAutoConfiguration
+@SpringBootApplication
 public class FamilyDAM
 {
     public static String adminUserId = "admin";
@@ -25,15 +21,11 @@ public class FamilyDAM
 
 
 
-
-
-
-
     @Bean
     MultipartConfigElement multipartConfigElement() {
         MultipartConfigFactory factory = new MultipartConfigFactory();
-        factory.setMaxFileSize("1000MB");
-        factory.setMaxRequestSize("1000MB");
+        factory.setMaxFileSize("2000MB");
+        factory.setMaxRequestSize("2000MB");
         return factory.createMultipartConfig();
     }
 }

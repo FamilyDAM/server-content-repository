@@ -22,6 +22,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -65,6 +66,7 @@ public class UploadFileTests
     @Autowired private Repository repository;
 
 
+    @Ignore
     @Test
     public void jcrCopy() throws Exception
     {

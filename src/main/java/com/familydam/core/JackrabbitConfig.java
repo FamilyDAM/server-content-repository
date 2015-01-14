@@ -17,12 +17,8 @@
 
 package com.familydam.core;
 
-import com.familydam.core.observers.ImageExifObserver;
-import com.familydam.core.observers.ImagePHashObserver;
-import com.familydam.core.observers.ImageRenditionsObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
-import com.familydam.core.services.ImageRenditionsService;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
@@ -31,12 +27,10 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
-import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -62,8 +56,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Configuration
 public class JackrabbitConfig
 {
-    @Autowired()
-    private ImageRenditionsService imageRenditionsService;
+    //@Autowired() private ImageRenditionsService imageRenditionsService;
 
     @Bean
     public Repository jcrRepository()
@@ -74,19 +67,19 @@ public class JackrabbitConfig
 
             // create Observers
             // create thumbnails
-            ImageRenditionsObserver imageRenditionObserver = new ImageRenditionsObserver("/dam");
-            imageRenditionObserver.setImageRenditionsService(imageRenditionsService);
+            //ImageRenditionsObserver imageRenditionObserver = new ImageRenditionsObserver("/dam");
+            //imageRenditionObserver.setImageRenditionsService(imageRenditionsService);
             // parse out exif metadata
-            ImageExifObserver imageExifObserver = new ImageExifObserver("/dam");
+            //ImageExifObserver imageExifObserver = new ImageExifObserver("/dam");
             // generate a phash for each image (so we can find like photos & duplicates)
-            ImagePHashObserver imagePHashObserver = new ImagePHashObserver("/dam");
+            //ImagePHashObserver imagePHashObserver = new ImagePHashObserver("/dam");
 
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
                     //.with(new BackgroundObserver(imageRenditionObserver, observerExecutor))
-                    .with(new BackgroundObserver(imageExifObserver, observerExecutor))
-                    .with(new BackgroundObserver(imagePHashObserver, observerExecutor))
+                    //.with(new BackgroundObserver(imageExifObserver, observerExecutor))
+                    //.with(new BackgroundObserver(imagePHashObserver, observerExecutor))
                     .withAsyncIndexing();
 
 
@@ -97,9 +90,9 @@ public class JackrabbitConfig
             registerCustomNodeTypes(repository);
 
             // Add Session
-            imageRenditionObserver.setRepository(repository);
-            imageExifObserver.setRepository(repository);
-            imagePHashObserver.setRepository(repository);
+            // imageRenditionObserver.setRepository(repository);
+            //imageExifObserver.setRepository(repository);
+            //imagePHashObserver.setRepository(repository);
 
             return repository;
         }
@@ -189,6 +182,10 @@ public class JackrabbitConfig
             throw new RuntimeException(ex);
         }
     }
+
+
+
+
 
 
     @Bean

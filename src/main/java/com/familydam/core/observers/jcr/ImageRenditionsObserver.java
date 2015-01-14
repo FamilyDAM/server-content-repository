@@ -15,7 +15,7 @@
  *     along with the FamilyDAM Project.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.familydam.core.observers;
+package com.familydam.core.observers.jcr;
 
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.MetadataException;
@@ -41,6 +41,7 @@ import java.util.Set;
 
 /**
  * Created by mnimer on 9/16/14.
+ * @Deprectated by Reactor observers
  */
 public class ImageRenditionsObserver extends NodeObserver implements Closeable
 {

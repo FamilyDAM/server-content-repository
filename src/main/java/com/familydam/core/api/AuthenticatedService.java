@@ -19,7 +19,6 @@ package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -85,17 +84,20 @@ public class AuthenticatedService
 
 
         String authorization = request.getHeader("Authorization");
-        if (authorization != null && authorization.startsWith("Basic ")) {
-            String[] basic =
-                    Base64.decode(authorization.substring("Basic ".length())).split(":");
-            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+        if (authorization != null && authorization.startsWith("Basic "))
+        {
+            String[] basic = Base64.decode(authorization.substring("Basic ".length())).split(":");
 
-            Cookie _cookie = new Cookie("x-auth-token", authorization);
-            _cookie.setDomain(".localhost");
-            _cookie.setHttpOnly(true);
-            response.addCookie(_cookie);
+            if( basic.length == 2 ) {
+                credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
 
-            request.getSession().setAttribute("x-auth-token", authorization);
+                Cookie _cookie = new Cookie("x-auth-token", authorization);
+                _cookie.setDomain(".localhost");
+                _cookie.setHttpOnly(true);
+                response.addCookie(_cookie);
+
+                request.getSession().setAttribute("x-auth-token", authorization);
+            }
         }
         else if (cookieMap.containsKey("x-auth-token") ) {
             String[] basic = Base64.decode(cookieMap.get("authorization").substring("Basic ".length())).split(":");

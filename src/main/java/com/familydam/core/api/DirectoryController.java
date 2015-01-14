@@ -17,6 +17,7 @@
 
 package com.familydam.core.api;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.http.HttpStatus;
@@ -52,13 +53,12 @@ public class DirectoryController extends AuthenticatedService
             throws RepositoryException
     {
         Session session = null;
-        try{
+        try {
             session = getSession(request, response);
             Node root = session.getRootNode();
             Node contentRoot = getContentRoot(session);
-            if (path != null && path.length()>1) {
-                if( path.startsWith("/"))
-                {
+            if (path != null && path.length() > 1) {
+                if (path.startsWith("/")) {
                     path = path.substring(1);
                 }
                 contentRoot = contentRoot.getNode(path);
@@ -73,15 +73,18 @@ public class DirectoryController extends AuthenticatedService
         }
         catch (Exception ae) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }finally {
-            if( session != null ) session.logout();
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
 
 
-
     /**
      * List all directories visible by a user.
+     *
      * @param request
      * @param response
      * @param path
@@ -95,26 +98,23 @@ public class DirectoryController extends AuthenticatedService
             throws RepositoryException
     {
         Session session = null;
-        try{
+        try {
             session = getSession(request, response);
             Node root = session.getRootNode();
             Node contentRoot = getContentRoot(session);
             path = path.replace("/~/", "/");
-            if (path != null && path.length()>1) {
-                if( path.startsWith("/"))
-                {
+            if (path != null && path.length() > 1) {
+                if (path.startsWith("/")) {
                     path = path.substring(1);
                 }
                 contentRoot = contentRoot.getNode(path);
             }
 
 
-
             Iterable<Node> _childNodes = JcrUtils.getChildNodes(contentRoot);
             List<Map> childNodes = new ArrayList<>();
-            for (Node node : _childNodes )
-            {
-                if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)
+            for (Node node : _childNodes) {
+                if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)
                         || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE)) {
                     Map _node = new HashMap();
                     _node.put("name", node.getName());
@@ -123,9 +123,9 @@ public class DirectoryController extends AuthenticatedService
                     _node.put("children", new ArrayList());
 
 
-                    if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER) ) {
+                    if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
                         _node.put("type", "folder");
-                    } else if ( node.isNodeType(JcrConstants.NT_FILE) ) {
+                    } else if (node.isNodeType(JcrConstants.NT_FILE)) {
                         _node.put("type", "file");
                     }
 
@@ -140,14 +140,18 @@ public class DirectoryController extends AuthenticatedService
         }
         catch (AuthenticationException ae) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }finally {
-            if( session != null ) session.logout();
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
 
 
     /**
      * Recursively walk jcr tree and find directories that the user can see.
+     *
      * @param root
      * @return
      * @throws RepositoryException
@@ -156,8 +160,8 @@ public class DirectoryController extends AuthenticatedService
     {
         Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
         List<Map> childNodes = new ArrayList<>();
-        for ( Node node : _childNodes ) {
-             if ( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER) ) {
+        for (Node node : _childNodes) {
+            if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
                 Map _node = new HashMap();
                 _node.put("type", "folder");
                 _node.put("name", node.getName());
@@ -165,6 +169,7 @@ public class DirectoryController extends AuthenticatedService
                 _node.put("parent", node.getParent().getPath().replace("/dam/", "/~/"));
                 _node.put("children", walkDirectoryTree(node));
                 _node.put("isReadOnly", false);
+                _node.put("mixins", StringUtils.join(node.getMixinNodeTypes(), ","));
                 childNodes.add(_node);
             }
         }

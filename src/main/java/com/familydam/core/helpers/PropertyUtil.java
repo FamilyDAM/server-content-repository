@@ -18,6 +18,7 @@
 package com.familydam.core.helpers;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,6 +37,7 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -62,24 +64,48 @@ public class PropertyUtil
         // get simple properties
         PropertyIterator propertyIterator = node.getProperties();
         while (propertyIterator.hasNext()) {
-            Property property = (Property)propertyIterator.next();
+            Property property = (Property) propertyIterator.next();
+            String _name = property.getName();
             // add all properties, but the binary content (to reduce size.)
             // binary content can be returned by a direct request for that node
 
-            if( !property.getName().equals(JcrConstants.JCR_CONTENT) ) {
-                String _name = property.getName();
-                nodeProps.put(_name, property.getString() ); //todo, make this dynamic based on type.
+            if (!property.isMultiple()) {
+
+
+                if (!property.getName().equals(JcrConstants.JCR_DATA)) //skip data nodes
+                {
+                    if (!property.isNode()) {
+                        String _value = property.getString();
+                        nodeProps.put(_name, _value); //todo, make this dynamic based on type.
+                    } else {
+                        Map childProps = PropertyUtil.readProperties((Node) property);
+                        nodeProps.put(_name, childProps);
+                    }
+                }
+
+            } else {
+                // HANDLE ARRAY Types
+                int _type = property.getType();
+
+                Value[] values = property.getValues();
+                Object[] _values = new Object[values.length];
+                for (int i = 0; i < values.length; i++) {
+                    Value value = values[i];
+                    _values[i] = value.getString();
+                }
+
+                nodeProps.put(_name, _values);
             }
         }
 
-        /**
-        PropertyUtil.readPropertyTree(node, nodeProps);
 
-        if( node.isNodeType(JcrConstants.NT_FILE) ) {
-            PropertyUtil.readChildFolders(node, nodeProps);
+        Iterable<Node> _childNodes = JcrUtils.getChildNodes(node);
+        for (Node childNode : _childNodes) {
+            String _childNodeName = childNode.getName();
+            Map _childNodeProps = PropertyUtil.readProperties(childNode);
+
+            nodeProps.put(_childNodeName, _childNodeProps);
         }
-         **/
-
 
         return nodeProps;
     }

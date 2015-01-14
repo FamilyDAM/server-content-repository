@@ -60,8 +60,8 @@ public class DocumentDirTest
     @Before
     public void setupMock() throws Exception
     {
-        //port = context.getEnvironment().getProperty("server.port");
-        rootUrl = "http://localhost:8080";// +port;
+        port = wac.getEnvironment().getProperty("server.port");
+        rootUrl = "http://localhost:" +port;
 
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }

@@ -18,13 +18,11 @@
 package com.familydam.core.filters;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
@@ -32,28 +30,17 @@ import java.io.IOException;
  * Created by mnimer on 9/27/14.
  */
 @Component
-public class SimpleCorsFilter implements Filter
+public class SimpleCorsFilter extends OncePerRequestFilter
 {
 
 
-    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException
+    public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException
     {
-        HttpServletResponse response = (HttpServletResponse) res;
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "origin, x-requested-with, x-csrf-token, content-type, accept, authentication, authorization");
         response.setHeader("Access-Control-Max-Age", "3600");
-        chain.doFilter(req, res);
-    }
-
-
-    public void init(FilterConfig filterConfig)
-    {
-    }
-
-
-    public void destroy()
-    {
+        chain.doFilter(request, response);
     }
 
 

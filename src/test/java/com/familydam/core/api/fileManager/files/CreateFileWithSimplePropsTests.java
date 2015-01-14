@@ -22,6 +22,7 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -68,8 +69,8 @@ public class CreateFileWithSimplePropsTests
     @Before
     public void setupMock() throws Exception
     {
-        //port = context.getEnvironment().getProperty("server.port");
-        rootUrl = "http://localhost:8080";// +port;
+        port = wac.getEnvironment().getProperty("server.port");
+        rootUrl = "http://localhost:" +port;
 
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
@@ -87,6 +88,7 @@ public class CreateFileWithSimplePropsTests
 
 
 
+    @Ignore
     @Test
     public void createFileWithSimpleProperties() throws Exception
     {
