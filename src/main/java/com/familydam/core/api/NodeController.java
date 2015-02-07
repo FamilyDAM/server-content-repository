@@ -21,7 +21,6 @@ import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.PropertyUtil;
 import com.familydam.core.services.ImageRenditionsService;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -50,10 +49,7 @@ import javax.imageio.ImageIO;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
 import javax.jcr.Session;
-import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -63,7 +59,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,13 +66,77 @@ import java.util.Map;
  * Created by mnimer on 9/16/14.
  */
 @Controller
-public class ContentController extends AuthenticatedService
+public class NodeController extends AuthenticatedService
 {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired private Reactor reactor;
     @Autowired private ImageRenditionsService imageRenditionsService;
 
+
+
+    /**
+     * Get the node details by path 
+     * @param request
+     * @param response
+     * @return
+     * @throws IOException
+     * @throws LoginException
+     * @throws NoSuchWorkspaceException
+     * @throws CommitFailedException
+     */
+    @RequestMapping(value = "/~/**", method = RequestMethod.GET)
+    public ResponseEntity<Object> getNode(HttpServletRequest request, HttpServletResponse response) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
+    {
+        Session session = null;
+        try {
+            session = getSession(request, response);
+            Node contentRoot = getContentRoot(session);
+            // walk the tree and get a reference to the requested path, or return a not found status
+            String _relativePath = request.getRequestURI().replace("/~/", "").replace("%20", " ");
+            Node node = contentRoot.getNode(_relativePath);
+
+            if (node.isNodeType(JcrConstants.NT_FILE)) {
+
+                InputStreamResource inputStreamResource = readFileNode(request, session, node);
+                //response.setHeader("content-length", 1000); //todo set.
+
+                HttpHeaders headers = new HttpHeaders();
+                MediaType mediaType = MediaType.parseMediaType(node.getNode("jcr:content").getProperty("jcr:mimeType").getString());
+                headers.setContentType(mediaType);
+                return new ResponseEntity(inputStreamResource, headers, HttpStatus.OK);
+
+            } else {
+
+                // return unstructured node of name/value properties
+                Map nodeInfo = PropertyUtil.readProperties(node);
+                return new ResponseEntity<Object>(nodeInfo, HttpStatus.OK);
+
+            }
+
+        }
+        catch (Exception ae) {
+            return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
+    }
+
+
+    /**
+     * Return the data for any given node in the JCR by ID
+     * @param request
+     * @param response
+     * @param id
+     * @return
+     * @throws IOException
+     * @throws LoginException
+     * @throws NoSuchWorkspaceException
+     * @throws CommitFailedException
+     */
     @RequestMapping(value = "/api/data/{id}", method = RequestMethod.GET)
     public ResponseEntity<Object> getNodeById(HttpServletRequest request,
                                               HttpServletResponse response,
@@ -115,93 +174,8 @@ public class ContentController extends AuthenticatedService
     }
 
 
-    /**
-     * Return a FILE InputStream for a specific ID
-     * @param request
-     * @param response
-     * @param id
-     * @return
-     * @throws IOException
-     * @throws LoginException
-     * @throws NoSuchWorkspaceException
-     * @throws CommitFailedException
-     */
-    @RequestMapping(value = "/api/file/{id}", method = RequestMethod.GET)
-    public ResponseEntity<Object> getFileById(HttpServletRequest request,
-                                              HttpServletResponse response,
-                                              @PathVariable(value = "id") String id) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
-    {
-        Session session = null;
-        try {
-            session = getSession(request, response);
-            Node node = session.getNodeByIdentifier(id);
 
-            if (node.isNodeType(JcrConstants.NT_FILE)) {
-
-                InputStreamResource inputStreamResource = readFileNode(request, session, node);
-                //response.setHeader("content-length", 1000); //todo set.
-
-                return new ResponseEntity(inputStreamResource, HttpStatus.OK);
-
-            } else {
-
-                // return unstructured node of name/value properties
-                Map nodeInfo = PropertyUtil.readProperties(node);
-                return new ResponseEntity<Object>(nodeInfo, HttpStatus.OK);
-
-            }
-
-        }
-        catch (Exception ae) {
-            return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
-        }
-        finally {
-            if (session != null) {
-                session.logout();
-            }
-        }
-    }
-
-
-
-    @RequestMapping(value = "/~/**", method = RequestMethod.GET)
-    public ResponseEntity<Object> getNode(HttpServletRequest request, HttpServletResponse response) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
-    {
-        Session session = null;
-        try {
-            session = getSession(request, response);
-            Node contentRoot = getContentRoot(session);
-            // walk the tree and get a reference to the requested path, or return a not found status
-            String _relativePath = request.getRequestURI().replace("/~/", "").replace("%20", " ");
-            Node node = contentRoot.getNode(_relativePath);
-
-            if (node.isNodeType(JcrConstants.NT_FILE)) {
-
-                InputStreamResource inputStreamResource = readFileNode(request, session, node);
-                //response.setHeader("content-length", 1000); //todo set.
-
-                return new ResponseEntity(inputStreamResource, HttpStatus.OK);
-
-            } else {
-
-                // return unstructured node of name/value properties
-                Map nodeInfo = PropertyUtil.readProperties(node);
-                return new ResponseEntity<Object>(nodeInfo, HttpStatus.OK);
-
-            }
-
-        }
-        catch (Exception ae) {
-            return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
-        }
-        finally {
-            if (session != null) {
-                session.logout();
-            }
-        }
-    }
-
-
+    
     private InputStreamResource readFileNode(HttpServletRequest request, Session session, Node node) throws Exception
     {
         Node imageNode = node;

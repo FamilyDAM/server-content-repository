@@ -88,6 +88,8 @@ public class JackrabbitConfig
 
             // Using the CND file, make sure all of the required mix-ins have been created.
             registerCustomNodeTypes(repository);
+            
+            registerCustomUsers(repository);
 
             // Add Session
             // imageRenditionObserver.setRepository(repository);
@@ -107,6 +109,7 @@ public class JackrabbitConfig
      * Using the CND file, make sure all of the required mix-ins have been created.
      * @param repository
      */
+    
     private void registerCustomNodeTypes(Repository repository)
     {
         Session session = null;
@@ -143,6 +146,23 @@ public class JackrabbitConfig
             //CndImporter.registerNodeTypes(new InputStreamReader(is), session, true);
 
             session.save();
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }finally {
+            if( session != null) session.logout();
+        }
+    }
+
+
+    private void registerCustomUsers(Repository repository)
+    {
+        Session session = null;
+        try {
+            //session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+            
+            
+            
+            //session.save();
         }catch(Exception ex){
             ex.printStackTrace();
         }finally {

@@ -23,7 +23,7 @@ package com.familydam.core;
 public class FamilyDAMConstants
 {
     // paths
-    public static final String DAM_ROOT = "dam";
+    public static final String DAM_ROOT = "dam:content";
     public static final String KEYWORDS = "dam:tags";
     public static final String METADATA = "dam:metadata";
     public static final String RENDITIONS = "dam:renditions";

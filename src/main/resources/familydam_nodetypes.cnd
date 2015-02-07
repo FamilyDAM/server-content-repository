@@ -9,6 +9,11 @@
 
 [dam:file] mixin
 
+
+[dam:systemFolder] mixin
+[dam:userFolder] mixin
+[dam:contentFolder] mixin
+
 [dam:image] mixin
 + dam:metadata (nt:unstructured)
 + dam:renditions (nt:folder)

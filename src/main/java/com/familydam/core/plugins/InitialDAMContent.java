@@ -41,25 +41,30 @@ public class InitialDAMContent extends InitialContent
 
         NodeBuilder damNode;
 
-        if (!builder.hasChildNode("dam")) {
-            damNode = builder.child("dam");
+        if (!builder.hasChildNode("dam:content")) {
+            damNode = builder.child("dam:content");
             damNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
             damNode.setProperty(JcrConstants.JCR_NAME, "dam");
+            damNode.setProperty(JcrConstants.JCR_MIXINTYPES, "dam:systemFolder");
             damNode.setProperty(JCR_CREATEDBY, "system");
         }else{
-            damNode = builder.child("dam");
+            damNode = builder.child("dam:content");
         }
 
 
         if( !damNode.hasChildNode("documents") ){
             NodeBuilder documents = damNode.child("documents");
             documents.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            damNode.setProperty(JcrConstants.JCR_MIXINTYPES, "dam:systemFolder");
             documents.setProperty(JcrConstants.JCR_NAME, "documents");
             documents.setProperty(JcrConstants.JCR_CREATED, "system");
         }
+        
+        
         if( !damNode.hasChildNode("photos") ){
             NodeBuilder photos = damNode.child("photos");
             photos.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            damNode.setProperty(JcrConstants.JCR_MIXINTYPES, "dam:systemFolder");
             photos.setProperty(JcrConstants.JCR_NAME, "photos");
             photos.setProperty(JCR_CREATEDBY, "system");
         }

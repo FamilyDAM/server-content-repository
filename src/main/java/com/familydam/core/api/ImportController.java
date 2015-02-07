@@ -86,10 +86,20 @@ public class ImportController extends AuthenticatedService
     }
 
 
-
-
-
-    @RequestMapping(value = "/copy")
+    /**
+     * Copy a local file into the JCR 
+     * @param request
+     * @param response
+     * @param type
+     * @param recursive
+     * @param dir
+     * @param path
+     * @return
+     * @throws LoginException
+     * @throws NoSuchWorkspaceException
+     * @throws IOException
+     */
+    @RequestMapping(value = "/file/copy")
     public ResponseEntity<Object> copyWithParams(HttpServletRequest request, HttpServletResponse response,
                                        @RequestParam(value = "type", required = false, defaultValue = "file") String type,
                                        @RequestParam(value = "recursive", required = false, defaultValue = "true") Boolean recursive,
@@ -114,6 +124,7 @@ public class ImportController extends AuthenticatedService
         }
     }
 
+    
 
     /**
      * Recursively copy all files under a folder

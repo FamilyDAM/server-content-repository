@@ -17,19 +17,16 @@
 
 package com.familydam.core.plugins;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
- * Created by mnimer on 9/18/14.
+ * Created by mnimer on 2/6/15.
  */
-public class CommitDAMHook implements CommitHook
+public class InitialWorkspaceConfig implements WorkspaceInitializer
 {
-    @Override
-    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException
+    @Override public void initialize(NodeBuilder builder, String workspaceName)
     {
-        return after;
+        
     }
 }

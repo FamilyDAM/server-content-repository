@@ -20,7 +20,6 @@ package com.familydam.core.api.fileManager.files;
 import com.familydam.core.FamilyDAM;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -70,7 +69,7 @@ public class UploadFileTests
     @Test
     public void jcrCopy() throws Exception
     {
-        String dirPath = "/dam/documents";
+        String dirPath = "/dam:content/documents";
 
         SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
         Session session = repository.login(credentials, null);

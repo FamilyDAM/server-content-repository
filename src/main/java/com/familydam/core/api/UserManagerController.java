@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
+import org.apache.jackrabbit.util.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -142,6 +143,7 @@ public class UserManagerController extends AuthenticatedService
             Map userProps = new HashMap();
             userProps.put("userid", session.getUserID());
             userProps.put("username", session.getUserID());
+            userProps.put("token", "Basic " +Base64.encode(username + ":" +password) );
             session.getAttributeNames();
 
             return new ResponseEntity<Map>(userProps, HttpStatus.OK);
