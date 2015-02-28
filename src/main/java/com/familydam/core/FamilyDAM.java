@@ -24,8 +24,8 @@ public class FamilyDAM
     @Bean
     MultipartConfigElement multipartConfigElement() {
         MultipartConfigFactory factory = new MultipartConfigFactory();
-        factory.setMaxFileSize("2000MB");
-        factory.setMaxRequestSize("2000MB");
+        //factory.setMaxFileSize("5000MB");
+        //factory.setMaxRequestSize("5000MB");
         return factory.createMultipartConfig();
     }
 }

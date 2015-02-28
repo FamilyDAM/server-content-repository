@@ -120,6 +120,20 @@ public enum MimeTypeManager
     }
 
 
+    public static String getMimeTypeForContentType(String contentType_)
+    {
+        for (MimeTypeManager mimeTypeManager : MimeTypeManager.values() )
+        {
+            if( mimeTypeManager.mimeType.equalsIgnoreCase(contentType_)  )
+            {
+                return mimeTypeManager.mimeType;
+            }
+        }
+
+        return "application/octet-stream";// default unknown
+    }
+
+
     public static boolean isImage(String path)
     {
 

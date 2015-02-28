@@ -80,53 +80,56 @@ public class ImageRenditionsService
             //ex.printStackTrace();
         }
 
-        int width = jpegDirectory.getImageWidth();
-        int height = jpegDirectory.getImageHeight();
+        if( jpegDirectory != null ) {
+            int width = jpegDirectory.getImageWidth();
+            int height = jpegDirectory.getImageHeight();
 
-        AffineTransform affineTransform = new AffineTransform();
+            AffineTransform affineTransform = new AffineTransform();
 
-        switch (orientation) {
-            case 1:
-                return originalImage;
-            case 2: // Flip X
-                affineTransform.scale(-1.0, 1.0);
-                affineTransform.translate(-width, 0);
-                break;
-            case 3: // PI rotation
-                affineTransform.translate(width, height);
-                affineTransform.rotate(Math.PI);
-                break;
-            case 4: // Flip Y
-                affineTransform.scale(1.0, -1.0);
-                affineTransform.translate(0, -height);
-                break;
-            case 5: // - PI/2 and Flip X
-                affineTransform.rotate(-Math.PI / 2);
-                affineTransform.scale(-1.0, 1.0);
-                break;
-            case 6: // -PI/2 and -width
-                affineTransform.translate(height, 0);
-                affineTransform.rotate(Math.PI / 2);
-                break;
-            case 7: // PI/2 and Flip
-                affineTransform.scale(-1.0, 1.0);
-                affineTransform.translate(-height, 0);
-                affineTransform.translate(0, width);
-                affineTransform.rotate(3 * Math.PI / 2);
-                break;
-            case 8: // PI / 2
-                affineTransform.translate(0, width);
-                affineTransform.rotate(3 * Math.PI / 2);
-                break;
-            default:
-                return originalImage;
+            switch (orientation) {
+                case 1:
+                    return originalImage;
+                case 2: // Flip X
+                    affineTransform.scale(-1.0, 1.0);
+                    affineTransform.translate(-width, 0);
+                    break;
+                case 3: // PI rotation
+                    affineTransform.translate(width, height);
+                    affineTransform.rotate(Math.PI);
+                    break;
+                case 4: // Flip Y
+                    affineTransform.scale(1.0, -1.0);
+                    affineTransform.translate(0, -height);
+                    break;
+                case 5: // - PI/2 and Flip X
+                    affineTransform.rotate(-Math.PI / 2);
+                    affineTransform.scale(-1.0, 1.0);
+                    break;
+                case 6: // -PI/2 and -width
+                    affineTransform.translate(height, 0);
+                    affineTransform.rotate(Math.PI / 2);
+                    break;
+                case 7: // PI/2 and Flip
+                    affineTransform.scale(-1.0, 1.0);
+                    affineTransform.translate(-height, 0);
+                    affineTransform.translate(0, width);
+                    affineTransform.rotate(3 * Math.PI / 2);
+                    break;
+                case 8: // PI / 2
+                    affineTransform.translate(0, width);
+                    affineTransform.rotate(3 * Math.PI / 2);
+                    break;
+                default:
+                    return originalImage;
+            }
+
+            AffineTransformOp affineTransformOp = new AffineTransformOp(affineTransform, AffineTransformOp.TYPE_BILINEAR);
+            BufferedImage destinationImage = new BufferedImage(originalImage.getHeight(), originalImage.getWidth(), originalImage.getType());
+            destinationImage = affineTransformOp.filter(originalImage, destinationImage);
+
+            return destinationImage;
         }
-
-        AffineTransformOp affineTransformOp = new AffineTransformOp(affineTransform, AffineTransformOp.TYPE_BILINEAR);
-        BufferedImage destinationImage = new BufferedImage(originalImage.getHeight(), originalImage.getWidth(), originalImage.getType());
-        destinationImage = affineTransformOp.filter(originalImage, destinationImage);
-
-        return destinationImage;
+        return null;
     }
 
 
@@ -137,6 +140,15 @@ public class ImageRenditionsService
         BufferedImage bufferedImage = ImageIO.read(is);
 
         return scaleImage(session, node, bufferedImage, longSize, Scalr.Method.AUTOMATIC);
+    }
+
+
+    public BufferedImage scaleImage(Session session, Node node, int longSize, Scalr.Method quality) throws RepositoryException, IOException
+    {
+        InputStream is = JcrUtils.readFile(node);
+        BufferedImage bufferedImage = ImageIO.read(is);
+
+        return scaleImage(session, node, bufferedImage, longSize, quality);
     }
 
 

@@ -72,9 +72,15 @@ public class ThumbnailObserver
                     if( node.isNodeType("dam:image") ) {
                         try {
                             BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
-                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, 200, Scalr.Method.AUTOMATIC);
-                            String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
-                            session.save();
+                            if( rotatedImage != null ) {
+                                BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, 200, Scalr.Method.AUTOMATIC);
+                                String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
+                                session.save();
+                            }else{
+                                BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, 200, Scalr.Method.AUTOMATIC);
+                                String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
+                                session.save();
+                            }
                         }
                         catch (RepositoryException | IOException ex) {
                             ex.printStackTrace();

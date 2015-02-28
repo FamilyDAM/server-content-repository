@@ -15,25 +15,27 @@
  *     along with the FamilyDAM Project.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.familydam.core;
+package com.familydam.core.models;
+
+import java.util.Collection;
 
 /**
- * Created by mnimer on 9/19/14.
+ * Created by mnimer on 2/18/15.
  */
-public class FamilyDAMConstants
+public interface INode
 {
-    // paths
-    public static final String CONTENT_ROOT = "dam:content";
-    public static final String KEYWORDS = "dam:tags";
-    public static final String METADATA = "dam:metadata";
-    public static final String RENDITIONS = "dam:renditions";
-    public static final String DAM_IMAGE = "dam:image";
+    String getId();
+    void setId( String id );
+    
+    String getName();
+    void setName( String name );
+    
+    int getOrder();
+    void setOrder( int order );
 
-    //Node props
-    public static final String CHILDREN = "children";
+    Collection<INode> getChildren();
+    void setChildren(Collection<INode> children);
 
-    //
-    public static final String THUMBNAIL200 = "thumbnail.200";
-    public static final String WEB1024 = "web.1024";
-
+    Collection<String> getMixins();
+    void setMixins(Collection<String> mixins);
 }

@@ -18,9 +18,14 @@
 package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.helpers.NodeMapper;
 import com.familydam.core.helpers.PropertyUtil;
+import com.familydam.core.models.INode;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -29,8 +34,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -65,25 +68,29 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * Methods to work with the actual binary data of an nt:file / jcr:content node.
+ *
  * Created by mnimer on 9/16/14.
  */
 @Controller
 @RequestMapping(value = "/api/files/")
-public class FileController extends AuthenticatedService
+public class FileController
 {
-    Logger logger = LoggerFactory.getLogger(this.getClass());
+    private Log log = LogFactory.getLog(this.getClass());
+
+    @Autowired
+    private AuthenticatedHelper authenticatedHelper;
 
     @Autowired private Reactor reactor;
     @Autowired private ImageRenditionsService imageRenditionsService;
 
 
     /**
-     * List all files in a directory visible by a user.
+     * List all files & directory in a directory visible by a user.
      *
      * @param request
      * @param response
@@ -92,54 +99,36 @@ public class FileController extends AuthenticatedService
      * @throws RepositoryException
      */
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public ResponseEntity<List<Map>> listDirectoryItems(
+    public ResponseEntity<List<INode>> getFileList(
             HttpServletRequest request, HttpServletResponse response,
             @RequestParam(value = "path", required = false, defaultValue = "/") String path)
             throws RepositoryException
     {
         Session session = null;
         try {
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             Node root = session.getRootNode();
-            Node contentRoot = getContentRoot(session, path);
+            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
 
             Iterable<Node> _childNodes = JcrUtils.getChildNodes(contentRoot);
-            List<Map> childNodes = new ArrayList<>();
+            List<INode> childNodes = new ArrayList<>();
+            
             for (Node node : _childNodes) {
-                if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)
-                        || node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE)) {
-
-                    // return map for every file
-                    Map _node = new HashMap();
-                    _node.put("id", node.getIdentifier());
-                    _node.put("name", node.getName());
-                    _node.put("path", node.getPath().replace("/dam:content/", "/~/"));
-                    _node.put("parent", node.getParent().getPath().replace("/dam:content/", "/~/"));
-                    _node.put("children", new ArrayList());
-                    _node.put("fileType", "unknown");
-
-
-                    if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
-                        _node.put("type", "folder");
-                    } else if (node.isNodeType(JcrConstants.NT_FILE)) {
-                        _node.put("type", "file");
-
-                        if( node.isNodeType("dam:image")  ) {
-                            _node.put("fileType", "image");
-                        }
-                    }
-
-                    _node.put("isReadOnly", false);
-                    childNodes.add(_node);
-                }
+                childNodes.add(NodeMapper.map(node));
             }
 
-            Collections.sort(childNodes, new Comparator<Map>()
+            Collections.sort(childNodes, new Comparator<INode>()
             {
-                public int compare(Map o1, Map o2)
+                public int compare(INode o1, INode o2)
                 {
-                    return ((Map)o1).get("name").toString().compareToIgnoreCase( ((Map)o2).get("name").toString() );
+                    if( o1.getOrder() < o2.getOrder()){
+                        return -1;
+                    }else if( o1.getOrder() > o2.getOrder()){
+                        return 1;
+                    }else{
+                        return ( o1.getName().toString().compareToIgnoreCase( o2.getName().toString() ));
+                    }
                 }
             });
 
@@ -148,6 +137,10 @@ public class FileController extends AuthenticatedService
         }
         catch (AuthenticationException ae) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        catch (Exception ex) {
+            log.error(ex);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         finally {
             if (session != null) {
@@ -169,14 +162,14 @@ public class FileController extends AuthenticatedService
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
      */
-    @RequestMapping(value = "/binary/{id}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public ResponseEntity<Object> getFileById(HttpServletRequest request,
                                               HttpServletResponse response,
                                               @PathVariable(value = "id") String id) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
         try {
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             Node node = session.getNodeByIdentifier(id);
 
             if (node.isNodeType(JcrConstants.NT_FILE)) {
@@ -341,79 +334,6 @@ public class FileController extends AuthenticatedService
     }
 
 
-    /**
-     * Update the properties of a node
-     * @param request
-     * @param property
-     * @param value
-     * @return
-     * @throws IOException
-     * @throws LoginException
-     * @throws NoSuchWorkspaceException
-     * @throws CommitFailedException
 
-     @RequestMapping(method = RequestMethod.PUT)
-     public ResponseEntity<Tree> updateFolder(HttpServletRequest request, String property, Object value) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
-     {
-     try (ContentSession session = getSession(request)) {
-     Root root = session.getLatestRoot();
-     Tree tree = getContentRoot(session);
-
-
-     String jcrPath = request.getRequestURI().substring(2);
-     Tree childPath = tree.getChild(jcrPath);
-     if (!childPath.exists()) {
-     return new ResponseEntity<Tree>(HttpStatus.NOT_FOUND);
-     }
-
-     childPath.setProperty(property, value);
-     root.commit();
-
-     return new ResponseEntity<Tree>(tree.getChild(jcrPath), HttpStatus.OK);
-     }
-     catch(AuthenticationException ae){
-     return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
-     }
-     finally {
-     }
-     } */
-
-
-    /**
-     * Hard delete of a node and all children under it
-     *
-     * @param request
-     * @return
-     * @throws IOException
-     * @throws LoginException
-     * @throws NoSuchWorkspaceException
-     * @throws CommitFailedException
-     */
-    @RequestMapping(value = "/~/**", method = RequestMethod.DELETE)
-    public ResponseEntity<Tree> removeFolder(HttpServletRequest request) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
-    {
-        throw new RuntimeException("Not implemented exception");
-        /***
-         try (ContentSession session = getSession(request)) {
-         Root root = session.getLatestRoot();
-         Tree rootTree = getContentRoot(session);
-         Tree tree = getRelativeTree(rootTree, request.getRequestURI());
-
-         if (!tree.exists()) {
-         return new ResponseEntity<Tree>(HttpStatus.NOT_FOUND);
-         }else {
-         tree.remove();
-         root.commit();
-         }
-
-         return new ResponseEntity<Tree>(HttpStatus.NO_CONTENT);
-         }
-         catch(AuthenticationException ae){
-         return new ResponseEntity<Tree>(HttpStatus.FORBIDDEN);
-         }
-         finally {
-         }
-         ***/
-    }
 
 }

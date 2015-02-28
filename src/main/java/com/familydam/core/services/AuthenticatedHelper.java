@@ -15,7 +15,7 @@
  *     along with the FamilyDAM Project.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.familydam.core.api;
+package com.familydam.core.services;
 
 import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -27,6 +27,7 @@ import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import javax.jcr.Credentials;
 import javax.jcr.Node;
@@ -44,7 +45,8 @@ import java.util.Map;
 /**
  * Created by mnimer on 9/23/14.
  */
-public class AuthenticatedService
+@Service
+public class AuthenticatedHelper
 {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -59,10 +61,10 @@ public class AuthenticatedService
      * @return
      * @throws RepositoryException
      */
-    protected Node getContentRoot(Session session) throws RepositoryException
+    public Node getContentRoot(Session session) throws RepositoryException
     {
         Node root = session.getRootNode();
-        return root.getNode(FamilyDAMConstants.DAM_ROOT);
+        return root.getNode(FamilyDAMConstants.CONTENT_ROOT);
     }
 
 
@@ -73,11 +75,12 @@ public class AuthenticatedService
      * @return
      * @throws RepositoryException
      */
-    protected Node getContentRoot(Session session, String relativePath_) throws RepositoryException
+    public Node getContentRoot(Session session, String relativePath_) throws RepositoryException
     {
         Node root = session.getRootNode();
-        Node contentRoot = root.getNode(FamilyDAMConstants.DAM_ROOT);
-        relativePath_ = relativePath_.replace("/~/", "/");
+        Node contentRoot = root.getNode(FamilyDAMConstants.CONTENT_ROOT);
+        
+        relativePath_ = relativePath_.replace("/~/", "").replace("/"+FamilyDAMConstants.CONTENT_ROOT, "");
         if (relativePath_ != null && relativePath_.length() > 1) {
             if (relativePath_.startsWith("/")) {
                 relativePath_ = relativePath_.substring(1);
@@ -88,7 +91,7 @@ public class AuthenticatedService
     }
 
 
-    private SecurityProvider getSecurityProvider()
+    public SecurityProvider getSecurityProvider()
     {
         if (securityProvider == null) {
             securityProvider = new SecurityProviderImpl(ConfigurationParameters.EMPTY);
@@ -98,7 +101,7 @@ public class AuthenticatedService
 
 
 
-    Session getSession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
+    public Session getSession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
     {
         Credentials credentials = null;
         Cookie[] cookies = request.getCookies();
@@ -152,14 +155,14 @@ public class AuthenticatedService
     }
 
 
-    Session getSession(Credentials credentials) throws RepositoryException
+    public Session getSession(Credentials credentials) throws RepositoryException
     {
         Session session = repository.login(credentials, null);
         return session;
     }
 
 
-    Session getRepositorySession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
+    public Session getRepositorySession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
     {
         Credentials credentials = null;
 
@@ -208,7 +211,7 @@ public class AuthenticatedService
     }
 
 
-    UserManager getUserManager(Session session) throws RepositoryException
+    public UserManager getUserManager(Session session) throws RepositoryException
     {
         ConfigurationParameters defaultConfig = ConfigurationParameters.EMPTY;
         String defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);

@@ -17,9 +17,16 @@
 
 package com.familydam.core.api;
 
-import org.apache.commons.lang3.StringUtils;
+import com.familydam.core.exceptions.UnknownINodeException;
+import com.familydam.core.helpers.NodeMapper;
+import com.familydam.core.models.Directory;
+import com.familydam.core.models.INode;
+import com.familydam.core.services.AuthenticatedHelper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -31,41 +38,46 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
+ * methods to work with nt:folder nodes in the jcr
+ *
  * Created by mnimer on 10/14/14.
  */
 @Controller
 @RequestMapping("/api/directory")
-public class DirectoryController extends AuthenticatedService
+public class DirectoryController 
 {
-
+    private Log log = LogFactory.getLog(this.getClass());
+    
+    @Autowired
+    private AuthenticatedHelper authenticatedHelper;
 
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public ResponseEntity<List<Map>> listDirectoryTree(
+    public ResponseEntity<List<INode>> getDirectoryTree(
             HttpServletRequest request, HttpServletResponse response,
             @RequestParam(value = "root", required = false, defaultValue = "/") String path)
             throws RepositoryException
     {
         Session session = null;
         try {
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             Node root = session.getRootNode();
-            Node contentRoot = getContentRoot(session, path);
+            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
-            List<Map> nodes = walkDirectoryTree(contentRoot);
+            List<INode> nodes = walkDirectoryTree(contentRoot);
             return new ResponseEntity<>(nodes, HttpStatus.OK);
 
         }
@@ -73,6 +85,7 @@ public class DirectoryController extends AuthenticatedService
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         catch (Exception ae) {
+            log.error(ae);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         finally {
@@ -94,7 +107,7 @@ public class DirectoryController extends AuthenticatedService
      * @throws RepositoryException
      */
     @RequestMapping(value = "/", method = RequestMethod.POST)
-    public ResponseEntity<List<Map>> createNewDirectory(
+    public ResponseEntity<Collection<Directory>> createNewDirectory(
             HttpServletRequest request, HttpServletResponse response,
             @RequestParam(value = "path", required = false, defaultValue = "/") String path,
             @RequestParam(value = "name", required = false, defaultValue = "New Folder") String name)
@@ -102,15 +115,19 @@ public class DirectoryController extends AuthenticatedService
     {
         Session session = null;
         try {
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             Node root = session.getRootNode();
-            Node contentRoot = getContentRoot(session, path);
+            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
 
             //todo: add validation to make sure we don't the few system properties
+            String _nodeName = name.replace(' ', '_').toLowerCase().trim();
             Node newNode = contentRoot.addNode(name, JcrConstants.NT_FOLDER);
+            //newNode.setProperty(JcrConstants.JCR_NAME, name);
+            //newNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
             newNode.addMixin( JcrConstants.MIX_REFERENCEABLE );
-            newNode.addMixin( "dam:contentFolder" );
+            newNode.addMixin( "mix:created" );
+            newNode.addMixin( "dam:userfolder" );
             session.save();
             //todo assign permissions
             
@@ -139,13 +156,13 @@ public class DirectoryController extends AuthenticatedService
      *
      * @param request
      * @param response
-     * @param path
+     * @param formData
      * @return
      * @throws RepositoryException
      */
 
     @RequestMapping(value = "/", method = RequestMethod.DELETE)
-    public ResponseEntity<List<Map>> deleteDirectory(
+    public ResponseEntity deleteDirectory(
             HttpServletRequest request, HttpServletResponse response,
             @RequestBody MultiValueMap<String, String> formData)
             throws RepositoryException
@@ -153,16 +170,16 @@ public class DirectoryController extends AuthenticatedService
         // validate params
         if( !formData.containsKey("path") )
         {
-            return new ResponseEntity<List<Map>>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         
         
         Session session = null;
         String path = formData.get("path").get(0);
         try {
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             Node root = session.getRootNode();
-            Node contentRoot = getContentRoot(session, path);
+            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
             // todo make sure it's not the system folder / content root
             if( !contentRoot.getName().equalsIgnoreCase("dam:content")) {
@@ -200,37 +217,33 @@ public class DirectoryController extends AuthenticatedService
      * @return
      * @throws RepositoryException
      */
-    private List<Map> walkDirectoryTree(Node root) throws RepositoryException
+    private List<INode> walkDirectoryTree(Node root) throws RepositoryException
     {
         Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
-        List<Map> childNodes = new ArrayList<>();
+        List<INode> childNodes = new ArrayList<>();
+        
         for (Node node : _childNodes) {
-            if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
-                Map _node = new HashMap();
-                _node.put("id", node.getIdentifier());
-                _node.put("type", "folder");
-                _node.put("name", node.getName());
-                _node.put("path", node.getPath().replace("/dam:content/", "/~/"));
-                _node.put("parent", node.getParent().getPath().replace("/dam:content/", "/~/"));
-                _node.put("children", walkDirectoryTree(node));
-                _node.put("isReadOnly", false);
-                _node.put("mixins", StringUtils.join(node.getMixinNodeTypes(), ","));
-                _node.put("fileType", "unknown");
+            try {
+                if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
 
-
-                if( node.isNodeType("dam:image")  ) {
-                    _node.put("fileType", "image");
+                    childNodes.add(NodeMapper.map(node));
                 }
-                
-                childNodes.add(_node);
+            }catch(PathNotFoundException|UnknownINodeException pnf){
+                log.error(pnf);
             }
         }
 
-        Collections.sort(childNodes, new Comparator<Map>()
+        Collections.sort(childNodes, new Comparator<INode>()
         {
-            public int compare(Map o1, Map o2)
+            public int compare(INode o1, INode o2)
             {
-                return ((Map) o1).get("name").toString().compareToIgnoreCase(((Map) o2).get("name").toString());
+                if( o1.getOrder() < o2.getOrder()){
+                    return -1;
+                }else if( o1.getOrder() > o2.getOrder()){
+                    return 1;
+                }else{
+                    return ( o1.getName().toString().compareToIgnoreCase( o2.getName().toString() ));
+                }
             }
         });
         

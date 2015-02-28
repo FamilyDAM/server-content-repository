@@ -18,6 +18,7 @@
 package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAM;
+import com.familydam.core.services.AuthenticatedHelper;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -59,8 +60,12 @@ import java.util.Map;
  */
 @Controller
 @RequestMapping("/api/users")
-public class UserManagerController extends AuthenticatedService
+public class UserManagerController
 {
+    @Autowired
+    private AuthenticatedHelper authenticatedHelper;
+
+    
     @Autowired private Repository repository;
 
 
@@ -83,7 +88,7 @@ public class UserManagerController extends AuthenticatedService
     {
         Session session = null;
         try {
-            session = getSession(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+            session = authenticatedHelper.getSession(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
 
             UserManager userManager = ((SessionImpl) session).getUserManager();
 
@@ -132,7 +137,9 @@ public class UserManagerController extends AuthenticatedService
 
 
     @RequestMapping(value = "/login", method = {RequestMethod.GET, RequestMethod.POST})
-    public ResponseEntity<Map> authenticateUser(HttpServletRequest request, HttpServletResponse response, @RequestParam("username") String username, @RequestParam("password") String password) throws IOException, LoginException, RepositoryException
+    public ResponseEntity<Map> authenticateUser(HttpServletRequest request, HttpServletResponse response, 
+                                                @RequestParam("username") String username, 
+                                                @RequestParam("password") String password) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try {
@@ -157,11 +164,13 @@ public class UserManagerController extends AuthenticatedService
 
 
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<String> createUser(HttpServletRequest request, @RequestParam("username") String username, @RequestParam("password") String newPassword) throws IOException, LoginException, NoSuchWorkspaceException, AuthorizableExistsException, RepositoryException
+    public ResponseEntity<String> createUser(HttpServletRequest request, 
+                                             @RequestParam("username") String username, 
+                                             @RequestParam("password") String newPassword) throws IOException, LoginException, NoSuchWorkspaceException, AuthorizableExistsException, RepositoryException
     {
         Session session = null;
         try{
-            session = getSession(new SimpleCredentials(username, newPassword.toCharArray()));
+            session = authenticatedHelper.getSession(new SimpleCredentials(username, newPassword.toCharArray()));
             //UserManager userManager = getUserManager(session);
             //User user = userManager.createUser(username, newPassword);
             //session.save();
@@ -200,7 +209,7 @@ public class UserManagerController extends AuthenticatedService
     {
         Session session = null;
         try{
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             //UserManager userManager = getUserManager(session);
             //Authorizable user = userManager.getAuthorizable(username);
             //NodeUtil userNode = new NodeUtil(session.getLatestRoot().getTree(user.getPath()));
@@ -238,7 +247,7 @@ public class UserManagerController extends AuthenticatedService
     {
         Session session = null;
         try {
-            session = getSession(request, response);
+            session = authenticatedHelper.getSession(request, response);
             //UserManager userManager = getUserManager(session);
             //Authorizable user = userManager.getAuthorizable(username);
 

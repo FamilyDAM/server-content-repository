@@ -15,25 +15,39 @@
  *     along with the FamilyDAM Project.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.familydam.core;
+package com.familydam.core.exceptions;
 
 /**
- * Created by mnimer on 9/19/14.
- */
-public class FamilyDAMConstants
+ * Created by mnimer on 2/18/15.
+ **/
+public class UnknownINodeException extends Exception
 {
-    // paths
-    public static final String CONTENT_ROOT = "dam:content";
-    public static final String KEYWORDS = "dam:tags";
-    public static final String METADATA = "dam:metadata";
-    public static final String RENDITIONS = "dam:renditions";
-    public static final String DAM_IMAGE = "dam:image";
+    public UnknownINodeException()
+    {
+        super();
+    }
 
-    //Node props
-    public static final String CHILDREN = "children";
 
-    //
-    public static final String THUMBNAIL200 = "thumbnail.200";
-    public static final String WEB1024 = "web.1024";
+    public UnknownINodeException(String message)
+    {
+        super(message);
+    }
 
+
+    public UnknownINodeException(String message, Throwable cause)
+    {
+        super(message, cause);
+    }
+
+
+    public UnknownINodeException(Throwable cause)
+    {
+        super(cause);
+    }
+
+
+    protected UnknownINodeException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace)
+    {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 }

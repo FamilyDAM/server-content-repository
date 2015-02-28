@@ -93,7 +93,7 @@ public class ImageEvents
 
             if (node != null) {
                 if (node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
-                    // create a 200x200 thumbnail
+                    // update the 200x200 thumbnail
                     reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(node.getPath()));
                     // parse the EXIF metadata
                     reactor.notify("image.metadata", Event.wrap(node.getPath()));
