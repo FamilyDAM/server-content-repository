@@ -17,6 +17,7 @@
 
 package com.familydam.core.helpers;
 
+import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -58,7 +59,7 @@ public class PropertyUtil
         Map<String, Object> nodeProps = new HashMap();
 
         // change the real path to match the REST path
-        nodeProps.put(JcrConstants.JCR_PATH, node.getPath().replace("/dam:content/", "/~/"));
+        nodeProps.put(JcrConstants.JCR_PATH, node.getPath().replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "/~/"));
         nodeProps.put(JcrConstants.JCR_NAME, node.getName());
 
         // get simple properties

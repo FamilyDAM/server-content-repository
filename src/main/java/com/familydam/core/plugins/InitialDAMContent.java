@@ -52,106 +52,125 @@ public class InitialDAMContent extends InitialContent
         _systemMixins.add("mix:created");
         _contentMixins.add("dam:contentfolder");
 
-        NodeBuilder contentNode;
-
-        if (!builder.hasChildNode("dam:content")) {
-            contentNode = builder.child("dam:content");
-            contentNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            contentNode.setProperty(JcrConstants.JCR_NAME, "dam");
-            contentNode.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-            contentNode.setProperty(JCR_CREATEDBY, "system");
-        }else{
-            contentNode = builder.child("dam:content");
-        }
         
-
-        if( !contentNode.hasChildNode("documents") ){
-            NodeBuilder documents = contentNode.child("documents");
-            documents.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            documents.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
-            documents.setProperty(JcrConstants.JCR_NAME, "Documents");
-            documents.setProperty(JcrConstants.JCR_CREATED, "system");
-            documents.setProperty("order", "1");
+        
+        NodeBuilder filesNode;
+        if (!builder.hasChildNode("dam:files")) {
+            filesNode = builder.child("dam:files");
+            filesNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            filesNode.setProperty(JcrConstants.JCR_NAME, "dam");
+            filesNode.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+            filesNode.setProperty(JCR_CREATEDBY, "system");
+        }else{
+            filesNode = builder.child("dam:files");
         }
 
 
-        /*************
-         * Future USE 
-         */
-        if( !contentNode.hasChildNode("cloud") ){
-            NodeBuilder cloud = contentNode.child("cloud");
-            cloud.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            cloud.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-            cloud.setProperty(JcrConstants.JCR_NAME, "Cloud");
-            cloud.setProperty(JcrConstants.JCR_CREATED, "system");
-            cloud.setProperty("order", "2");
-
-                NodeBuilder dropbox = cloud.child("dropbox");
-                dropbox.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                dropbox.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
-                dropbox.setProperty(JcrConstants.JCR_NAME, "Dropbox");
-                dropbox.setProperty(JcrConstants.JCR_CREATED, "system");
-
-                    // todo: remove, this should not be hard coded
-                    NodeBuilder mnimer = dropbox.child("mike");
-                    mnimer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                    mnimer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-                    mnimer.setProperty(JcrConstants.JCR_NAME, "mike");
-                    mnimer.setProperty(JcrConstants.JCR_CREATED, "system");
-                    NodeBuilder animer = dropbox.child("angela");
-                    animer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                    animer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-                    animer.setProperty(JcrConstants.JCR_NAME, "angela");
-                    animer.setProperty(JcrConstants.JCR_CREATED, "system");
-
-                NodeBuilder gdrive = cloud.child("google_drive");
-                gdrive.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                gdrive.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
-                gdrive.setProperty(JcrConstants.JCR_NAME, "Google Drive");
-                gdrive.setProperty(JcrConstants.JCR_CREATED, "system");
-
-                    // todo: remove, this should not be hard coded
-                    NodeBuilder mnimer2 = gdrive.child("mike");
-                    mnimer2.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                    mnimer2.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-                    mnimer2.setProperty(JcrConstants.JCR_NAME, "mike");
-                    mnimer2.setProperty(JcrConstants.JCR_CREATED, "system");
-                    NodeBuilder animer3 = gdrive.child("angela");
-                    animer3.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                    animer3.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-                    animer3.setProperty(JcrConstants.JCR_NAME, "angela");
-                    animer3.setProperty(JcrConstants.JCR_CREATED, "system");
-            
-        }
-        if( !contentNode.hasChildNode("email") ){
-            NodeBuilder email = contentNode.child("email_archive");
-            email.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            email.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
-            email.setProperty(JcrConstants.JCR_NAME, "Email Archive");
-            email.setProperty(JcrConstants.JCR_CREATED, "system");
-            email.setProperty("order", "4");
-
+            if( !filesNode.hasChildNode("documents") ){
+                NodeBuilder documents = filesNode.child("documents");
+                documents.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                documents.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
+                documents.setProperty(JcrConstants.JCR_NAME, "Documents");
+                documents.setProperty(JcrConstants.JCR_CREATED, "system");
+                documents.setProperty("order", "1");
 
                 // todo: remove, this should not be hard coded
-                NodeBuilder mnimer = email.child("mike");
-                mnimer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                mnimer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS );
-                mnimer.setProperty(JcrConstants.JCR_NAME, "mike");
-                mnimer.setProperty(JcrConstants.JCR_CREATED, "system");
-                NodeBuilder animer = email.child("angela");
-                animer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-                animer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS );
-                animer.setProperty(JcrConstants.JCR_NAME, "angela");
-                animer.setProperty(JcrConstants.JCR_CREATED, "system");
+                NodeBuilder mnimer1 = documents.child("mike");
+                mnimer1.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                mnimer1.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                mnimer1.setProperty(JcrConstants.JCR_NAME, "mike");
+                mnimer1.setProperty(JcrConstants.JCR_CREATED, "system");
+                NodeBuilder animer1 = documents.child("angela");
+                animer1.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                animer1.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                animer1.setProperty(JcrConstants.JCR_NAME, "angela");
+                animer1.setProperty(JcrConstants.JCR_CREATED, "system");
+            }
+
+
+            if( !filesNode.hasChildNode("cloud") ){
+                NodeBuilder cloud = filesNode.child("cloud");
+                cloud.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                cloud.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                cloud.setProperty(JcrConstants.JCR_NAME, "Cloud");
+                cloud.setProperty(JcrConstants.JCR_CREATED, "system");
+                cloud.setProperty("order", "2");
+
+                    NodeBuilder dropbox = cloud.child("dropbox");
+                    dropbox.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                    dropbox.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
+                    dropbox.setProperty(JcrConstants.JCR_NAME, "Dropbox");
+                    dropbox.setProperty(JcrConstants.JCR_CREATED, "system");
+
+                        // todo: remove, this should not be hard coded
+                        NodeBuilder mnimer = dropbox.child("mike");
+                        mnimer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                        mnimer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                        mnimer.setProperty(JcrConstants.JCR_NAME, "mike");
+                        mnimer.setProperty(JcrConstants.JCR_CREATED, "system");
+                        NodeBuilder animer = dropbox.child("angela");
+                        animer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                        animer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                        animer.setProperty(JcrConstants.JCR_NAME, "angela");
+                        animer.setProperty(JcrConstants.JCR_CREATED, "system");
+
+                    NodeBuilder gdrive = cloud.child("google_drive");
+                    gdrive.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                    gdrive.setProperty(JcrConstants.JCR_MIXINTYPES, _contentMixins, Type.STRINGS);
+                    gdrive.setProperty(JcrConstants.JCR_NAME, "Google Drive");
+                    gdrive.setProperty(JcrConstants.JCR_CREATED, "system");
+
+                        // todo: remove, this should not be hard coded
+                        NodeBuilder mnimer2 = gdrive.child("mike");
+                        mnimer2.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                        mnimer2.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                        mnimer2.setProperty(JcrConstants.JCR_NAME, "mike");
+                        mnimer2.setProperty(JcrConstants.JCR_CREATED, "system");
+                        NodeBuilder animer3 = gdrive.child("angela");
+                        animer3.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+                        animer3.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+                        animer3.setProperty(JcrConstants.JCR_NAME, "angela");
+                        animer3.setProperty(JcrConstants.JCR_CREATED, "system");
+            }
+
+
+
+
+        NodeBuilder email;
+        if (!builder.hasChildNode("dam:email")) {
+            email = builder.child("dam:email");
+            email.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            email.setProperty(JcrConstants.JCR_NAME, "dam");
+            email.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+            email.setProperty(JCR_CREATEDBY, "system");
+        }else{
+            email = builder.child("dam:email");
         }
-        if( !contentNode.hasChildNode("web") ){
-            NodeBuilder web = contentNode.child("web_archive");
+            // todo: remove, this should not be hard coded
+            NodeBuilder mnimer = email.child("mike");
+            mnimer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            mnimer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS );
+            mnimer.setProperty(JcrConstants.JCR_NAME, "mike");
+            mnimer.setProperty(JcrConstants.JCR_CREATED, "system");
+            NodeBuilder animer = email.child("angela");
+            animer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            animer.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS );
+            animer.setProperty(JcrConstants.JCR_NAME, "angela");
+            animer.setProperty(JcrConstants.JCR_CREATED, "system");
+
+
+
+        NodeBuilder web;
+        if( !builder.hasChildNode("dam:web") ) {
+            web = builder.child("dam:web");
             web.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            web.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS );
+            web.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
             web.setProperty(JcrConstants.JCR_NAME, "Web Archive");
             web.setProperty(JcrConstants.JCR_CREATED, "system");
             web.setProperty("order", "3");
-
+        }else{
+            web = builder.child("dam:web");
+        }
 
                 NodeBuilder fb = web.child("facebook");
                 fb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
@@ -211,7 +230,7 @@ public class InitialDAMContent extends InitialContent
                     animer4.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS );
                     animer4.setProperty(JcrConstants.JCR_NAME, "angela");
                     animer4.setProperty(JcrConstants.JCR_CREATED, "system");
-        }
+
         
 
 

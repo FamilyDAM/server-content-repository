@@ -226,7 +226,12 @@ public class DirectoryController
             try {
                 if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
 
-                    childNodes.add(NodeMapper.map(node));
+                    List<INode> _childTree = walkDirectoryTree(node);
+
+                    INode _node = NodeMapper.map(node);
+                    _node.setChildren(_childTree);
+                    
+                    childNodes.add( _node );
                 }
             }catch(PathNotFoundException|UnknownINodeException pnf){
                 log.error(pnf);

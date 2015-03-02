@@ -18,6 +18,7 @@
 package com.familydam.core.api.fileManager.files;
 
 import com.familydam.core.FamilyDAM;
+import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.junit.Assert;
@@ -69,7 +70,7 @@ public class UploadFileTests
     @Test
     public void jcrCopy() throws Exception
     {
-        String dirPath = "/dam:content/documents";
+        String dirPath = "/" + FamilyDAMConstants.CONTENT_ROOT +"/documents";
 
         SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
         Session session = repository.login(credentials, null);
