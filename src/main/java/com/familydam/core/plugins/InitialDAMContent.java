@@ -47,24 +47,55 @@ public class InitialDAMContent extends InitialContent
         Set<String> _systemMixins = new HashSet<>();
         _systemMixins.add("mix:created");
         _systemMixins.add("dam:systemfolder");
+        _systemMixins.add("dam:extensible");
 
         Set<String> _contentMixins = new HashSet<>();
         _systemMixins.add("mix:created");
         _contentMixins.add("dam:contentfolder");
+        _contentMixins.add("dam:extensible");
 
-        
+
+
         
         NodeBuilder filesNode;
         if (!builder.hasChildNode("dam:files")) {
             filesNode = builder.child("dam:files");
             filesNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            filesNode.setProperty(JcrConstants.JCR_NAME, "dam");
+            filesNode.setProperty(JcrConstants.JCR_NAME, "Files");
             filesNode.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
             filesNode.setProperty(JCR_CREATEDBY, "system");
         }else{
             filesNode = builder.child("dam:files");
         }
 
+        ///
+        NodeBuilder email;
+        if (!builder.hasChildNode("dam:email")) {
+            email = builder.child("dam:email");
+            email.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            email.setProperty(JcrConstants.JCR_NAME, "Email Archive");
+            email.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+            email.setProperty(JCR_CREATEDBY, "system");
+        }else{
+            email = builder.child("dam:email");
+        }
+
+        ///
+
+        NodeBuilder web;
+        if( !builder.hasChildNode("dam:web") ) {
+            web = builder.child("dam:web");
+            web.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
+            web.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
+            web.setProperty(JcrConstants.JCR_NAME, "Web Archive");
+            web.setProperty(JcrConstants.JCR_CREATED, "system");
+            web.setProperty("order", "3");
+        }else{
+            web = builder.child("dam:web");
+        }
+
+
+        /*******************
 
             if( !filesNode.hasChildNode("documents") ){
                 NodeBuilder documents = filesNode.child("documents");
@@ -135,17 +166,6 @@ public class InitialDAMContent extends InitialContent
 
 
 
-
-        NodeBuilder email;
-        if (!builder.hasChildNode("dam:email")) {
-            email = builder.child("dam:email");
-            email.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            email.setProperty(JcrConstants.JCR_NAME, "dam");
-            email.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-            email.setProperty(JCR_CREATEDBY, "system");
-        }else{
-            email = builder.child("dam:email");
-        }
             // todo: remove, this should not be hard coded
             NodeBuilder mnimer = email.child("mike");
             mnimer.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
@@ -160,17 +180,6 @@ public class InitialDAMContent extends InitialContent
 
 
 
-        NodeBuilder web;
-        if( !builder.hasChildNode("dam:web") ) {
-            web = builder.child("dam:web");
-            web.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
-            web.setProperty(JcrConstants.JCR_MIXINTYPES, _systemMixins, Type.STRINGS);
-            web.setProperty(JcrConstants.JCR_NAME, "Web Archive");
-            web.setProperty(JcrConstants.JCR_CREATED, "system");
-            web.setProperty("order", "3");
-        }else{
-            web = builder.child("dam:web");
-        }
 
                 NodeBuilder fb = web.child("facebook");
                 fb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FOLDER);
@@ -231,7 +240,7 @@ public class InitialDAMContent extends InitialContent
                     animer4.setProperty(JcrConstants.JCR_NAME, "angela");
                     animer4.setProperty(JcrConstants.JCR_CREATED, "system");
 
-        
+        *********************/
 
 
         // todo add default admin user.
@@ -242,7 +251,7 @@ public class InitialDAMContent extends InitialContent
 
         //InputStream is = this.getClass().getClassLoader().getResourceAsStream("familydam_nodetypes.cnd");
 
-/**
+        /**
         NodeState base = builder.getNodeState();
         NodeTypeRegistry.register(new SystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
@@ -251,6 +260,6 @@ public class InitialDAMContent extends InitialContent
                 , is, "familydam node types");
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
-**/
+        **/
     }
 }

@@ -109,7 +109,7 @@ public class DirectoryController
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<Collection<Directory>> createNewDirectory(
             HttpServletRequest request, HttpServletResponse response,
-            @RequestParam(value = "path", required = false, defaultValue = "/") String path,
+            @RequestParam(value = "path", required = false, defaultValue = "/dam:files/") String path,
             @RequestParam(value = "name", required = false, defaultValue = "New Folder") String name)
             throws RepositoryException
     {
@@ -122,12 +122,23 @@ public class DirectoryController
 
             //todo: add validation to make sure we don't the few system properties
             String _nodeName = name.replace(' ', '_').toLowerCase().trim();
-            Node newNode = contentRoot.addNode(name, JcrConstants.NT_FOLDER);
+            /**
+            Node node = contentRoot.addNode(_nodeName, JcrConstants.NT_FOLDER);
+            node.addMixin("mix:created");
+            node.addMixin("dam:userfolder");
+            session.save();
+
+            Node node2 = contentRoot.getNode(_nodeName);
+            node2.setProperty(JcrConstants.JCR_NAME, name);
+            **/
+
+            Node newNode = JcrUtils.getOrAddNode(contentRoot, _nodeName, JcrConstants.NT_FOLDER);
             //newNode.setProperty(JcrConstants.JCR_NAME, name);
+            //Node newNode = contentRoot.addNode(name, JcrConstants.NT_FOLDER);
             //newNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
             newNode.addMixin( JcrConstants.MIX_REFERENCEABLE );
-            newNode.addMixin( "mix:created" );
-            newNode.addMixin( "dam:userfolder" );
+            newNode.addMixin("mix:created");
+            newNode.addMixin("dam:userfolder");
             session.save();
             //todo assign permissions
             

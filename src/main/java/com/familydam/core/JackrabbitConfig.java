@@ -17,8 +17,11 @@
 
 package com.familydam.core;
 
+import com.familydam.core.observers.DirectoryObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
@@ -36,11 +39,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.jcr.NamespaceRegistry;
+import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,7 +84,7 @@ public class JackrabbitConfig
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
-                    //.with(new BackgroundObserver(imageRenditionObserver, observerExecutor))
+                    .with(new DirectoryObserver("/dam:files/", JcrConstants.JCR_NAME))
                     //.with(new BackgroundObserver(imageExifObserver, observerExecutor))
                     //.with(new BackgroundObserver(imagePHashObserver, observerExecutor))
                     .withAsyncIndexing();
@@ -89,6 +96,7 @@ public class JackrabbitConfig
             // Using the CND file, make sure all of the required mix-ins have been created.
             registerCustomNodeTypes(repository);
             
+            registerSystemDirectories(repository);
             registerCustomUsers(repository);
 
             // Add Session
@@ -154,15 +162,70 @@ public class JackrabbitConfig
     }
 
 
-    private void registerCustomUsers(Repository repository)
+    private void registerSystemDirectories(Repository repository)
     {
         Session session = null;
         try {
-            //session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
-            
-            
-            
-            //session.save();
+            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+
+            Node _rootNode = session.getRootNode();
+            Node _filesNode = JcrUtils.getOrAddNode(_rootNode, "dam:files", JcrConstants.NT_FOLDER);
+            Node _documentsFolderNode = JcrUtils.getOrAddFolder(_filesNode, "documents");
+            _documentsFolderNode.addMixin("mix:created");
+            _documentsFolderNode.addMixin("dam:contentfolder");
+            _documentsFolderNode.addMixin("dam:extensible");
+            _documentsFolderNode.setProperty(JcrConstants.JCR_NAME, "Documents");
+            _documentsFolderNode.setProperty("order", "1");
+
+            Node _cloudNode = JcrUtils.getOrAddFolder(_filesNode, "cloud");
+            _cloudNode.addMixin("mix:created");
+            _cloudNode.addMixin("dam:contentfolder");
+            _cloudNode.addMixin("dam:extensible");
+            _cloudNode.setProperty(JcrConstants.JCR_NAME, "Cloud");
+            _cloudNode.setProperty("order", "2");
+
+            session.save();
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }finally {
+            if( session != null) session.logout();
+        }
+    }
+
+
+
+    private void registerCustomUsers(Repository repository)
+    {
+        String[] users = new String[]{"admin", "animer"};
+
+        Session session = null;
+        try {
+            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+
+            QueryManager queryManager = session.getWorkspace().getQueryManager();
+            //Query query = queryManager.createQuery(sql, "JCR-SQL2");
+            Query query = queryManager.createQuery("SELECT * FROM [dam:contentfolder] AS s", "sql");
+
+            // Execute the query and get the results ...
+            QueryResult result = query.execute();
+
+            javax.jcr.NodeIterator nodeItr = result.getNodes();
+            while ( nodeItr.hasNext() ) {
+                javax.jcr.Node node = nodeItr.nextNode();
+
+                if( !node.getPath().equals("/") ) {
+                    for (String user : users) {
+                        Node _node = JcrUtils.getOrAddFolder(node, user);
+                        _node.addMixin("mix:created");
+                        _node.addMixin("dam:systemfolder");
+                        _node.addMixin("dam:extensible");
+                        _node.setProperty(JcrConstants.JCR_NAME, user);
+                        session.save();
+                    }
+                }
+            }
+
+            session.save();
         }catch(Exception ex){
             ex.printStackTrace();
         }finally {
@@ -255,26 +318,4 @@ public class JackrabbitConfig
     }
 
 
-    /****
-     @Bean public ContentRepository contentRepository()
-     {
-     try {
-     ContentRepository repository = oak().createContentRepository();
-     return repository;
-     }
-     catch (Exception ex) {
-     ex.printStackTrace(); //todo handle this.
-     throw new RuntimeException(ex);
-     }
-     }*****/
-
-
-    /**
-     @Bean public ServletRegistrationBean oakServlet()
-     {
-     OakServlet servlet = new OakServlet(contentRepository());
-     ServletRegistrationBean bean = new ServletRegistrationBean(servlet, "/oak/*");
-     return bean;
-     }
-     **/
 }
