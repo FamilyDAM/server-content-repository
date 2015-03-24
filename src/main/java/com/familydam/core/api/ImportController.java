@@ -80,7 +80,7 @@ public class ImportController
     @Autowired private Reactor reactor;
 
     @RequestMapping(value = "/info")
-    public ResponseEntity<Object> info(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException
+    public ResponseEntity<Map> info(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException
     {
         String path = request.getParameter("path");//(String) props.get("path");
 

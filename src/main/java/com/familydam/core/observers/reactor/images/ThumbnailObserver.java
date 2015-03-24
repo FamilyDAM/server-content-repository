@@ -84,6 +84,8 @@ public class ThumbnailObserver
                         }
                         catch (RepositoryException | IOException ex) {
                             ex.printStackTrace();
+                        }finally {
+
                         }
                     }
 

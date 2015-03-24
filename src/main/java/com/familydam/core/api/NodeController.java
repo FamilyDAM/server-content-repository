@@ -187,7 +187,7 @@ public class NodeController
      * @throws CommitFailedException
      */
     @RequestMapping(value = "/api/data/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Object> deleteNodeById(HttpServletRequest request, HttpServletResponse response,
+    public ResponseEntity<String> deleteNodeById(HttpServletRequest request, HttpServletResponse response,
                                                @PathVariable(value = "id") String id_) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
