@@ -32,6 +32,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -82,8 +85,12 @@ public class NodeController
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/~/**", method = RequestMethod.GET)
-    public ResponseEntity<Object> getNodeByPath(HttpServletRequest request, HttpServletResponse response) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
+    public ResponseEntity<Object> getNodeByPath(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
         try {
@@ -135,9 +142,11 @@ public class NodeController
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/api/data/{id}", method = RequestMethod.GET)
     public ResponseEntity<Object> getNodeById(HttpServletRequest request,
                                               HttpServletResponse response,
+                                              @AuthenticationPrincipal Authentication currentUser_,
                                               @PathVariable(value = "id") String id) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
@@ -186,8 +195,10 @@ public class NodeController
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/api/data/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteNodeById(HttpServletRequest request, HttpServletResponse response,
+                                                 @AuthenticationPrincipal Authentication currentUser_,
                                                @PathVariable(value = "id") String id_) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
@@ -212,7 +223,9 @@ public class NodeController
 
 
     
-    private InputStreamResource readFileNode(HttpServletRequest request, Session session, Node node) throws Exception
+    private InputStreamResource readFileNode(
+            HttpServletRequest request,
+            Session session, Node node) throws Exception
     {
         Node imageNode = node;
 

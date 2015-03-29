@@ -23,7 +23,6 @@ import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.undertow.servlet.spec.PartImpl;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -34,6 +33,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -79,6 +81,7 @@ public class ImportController
 
     @Autowired private Reactor reactor;
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/info")
     public ResponseEntity<Map> info(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException
     {
@@ -108,8 +111,12 @@ public class ImportController
      * @throws NoSuchWorkspaceException
      * @throws IOException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/file/upload", method= RequestMethod.POST, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<Node> fileUpload(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException, IOException, ServletException
+    public ResponseEntity<Node> fileUpload(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_) throws LoginException, NoSuchWorkspaceException, IOException, ServletException
     {
         boolean fileExists = false;
         Session session = null;
@@ -132,7 +139,7 @@ public class ImportController
                 String _name = part.getName();
                 if (_name.equalsIgnoreCase("file")) {
                     String _contentType = part.getContentType();
-                    String _fileName = ((PartImpl) part).getSubmittedFileName();
+                    String _fileName = ((Part) part).getSubmittedFileName();
 
                     InputStream _file = part.getInputStream();
 
@@ -193,8 +200,10 @@ public class ImportController
      * @throws NoSuchWorkspaceException
      * @throws IOException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/file/copy")
     public ResponseEntity<Object> fileCopy(HttpServletRequest request, HttpServletResponse response,
+                                           @AuthenticationPrincipal Authentication currentUser_,
                                            @RequestParam(value = "type", required = false, defaultValue = "file") String type,
                                            @RequestParam(value = "recursive", required = false, defaultValue = "true") Boolean recursive,
                                            @RequestParam(value = "dir", required = false) String dir,

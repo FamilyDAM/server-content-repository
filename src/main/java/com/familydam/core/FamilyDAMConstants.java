@@ -38,4 +38,9 @@ public class FamilyDAMConstants
     public static final String THUMBNAIL200 = "thumbnail.200";
     public static final String WEB1024 = "web.1024";
 
+    //headers
+    public static final String XAUTHTOKEN = "X-Auth-Token";
+    public static final String XAUTHTOKENPARAM = "token";
+    public static final String XAUTHTOKENREFRESH = "X-Auth-Token-Refresh";
+
 }

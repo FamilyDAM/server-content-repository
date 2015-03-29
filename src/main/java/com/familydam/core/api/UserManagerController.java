@@ -18,6 +18,10 @@
 package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAM;
+import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.dao.UserDao;
+import com.familydam.core.security.CustomUserDetails;
+import com.familydam.core.security.TokenHandler;
 import com.familydam.core.services.AuthenticatedHelper;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -27,17 +31,20 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
-import org.apache.jackrabbit.util.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -67,6 +74,27 @@ public class UserManagerController
 
     
     @Autowired private Repository repository;
+    @Autowired private UserDao userDao;
+    @Autowired private TokenHandler tokenHandler;
+
+
+
+
+    @RequestMapping(value = "/login", method = {RequestMethod.GET, RequestMethod.POST})
+    public ResponseEntity<CustomUserDetails> authenticateUser(HttpServletRequest request, HttpServletResponse response,
+                                                              @RequestParam("username") String username_,
+                                                              @RequestParam("password") String password_) throws IOException, LoginException, RepositoryException
+    {
+        CustomUserDetails customUserDetails = userDao.getUser(username_, password_);
+
+        String _token = tokenHandler.createTokenForUser(customUserDetails);
+
+        MultiValueMap<String, String> _headers = new LinkedMultiValueMap<>();
+        _headers.add(FamilyDAMConstants.XAUTHTOKENREFRESH, _token);
+
+        return new ResponseEntity<>(customUserDetails, _headers, HttpStatus.OK);
+
+    }
 
 
 
@@ -84,7 +112,10 @@ public class UserManagerController
      * @throws RepositoryException
      */
     @RequestMapping(method = {RequestMethod.GET})
-    public ResponseEntity<Collection<Map>> getUserList(HttpServletRequest request, HttpServletResponse response) throws IOException, LoginException, RepositoryException
+    public ResponseEntity<Collection<Map>> getUserList(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try {
@@ -128,6 +159,7 @@ public class UserManagerController
                 userList.add(userMap);
             }
 
+
             return new ResponseEntity<>(userList, HttpStatus.OK);
         }
         finally {
@@ -136,35 +168,11 @@ public class UserManagerController
     }
 
 
-    @RequestMapping(value = "/login", method = {RequestMethod.GET, RequestMethod.POST})
-    public ResponseEntity<Map> authenticateUser(HttpServletRequest request, HttpServletResponse response, 
-                                                @RequestParam("username") String username, 
-                                                @RequestParam("password") String password) throws IOException, LoginException, RepositoryException
-    {
-        Session session = null;
-        try {
-            Credentials credentials = new SimpleCredentials(username, password.toCharArray());
-            //todo: add "admin" filter, so it's not allowed.
-            session = repository.login(credentials, null);
 
-            Map userProps = new HashMap();
-            userProps.put("userid", session.getUserID());
-            userProps.put("username", session.getUserID());
-            userProps.put("token", "Basic " +Base64.encode(username + ":" +password) );
-            session.getAttributeNames();
-
-            return new ResponseEntity<Map>(userProps, HttpStatus.OK);
-        }
-        finally {
-
-        }
-    }
-
-
-
-
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<String> createUser(HttpServletRequest request, 
+    public ResponseEntity<String> createUser(HttpServletRequest request,
+                                             @AuthenticationPrincipal Authentication currentUser_,
                                              @RequestParam("username") String username, 
                                              @RequestParam("password") String newPassword) throws IOException, LoginException, NoSuchWorkspaceException, AuthorizableExistsException, RepositoryException
     {
@@ -203,8 +211,10 @@ public class UserManagerController
      * @throws AuthorizableExistsException
      * @throws RepositoryException
      */
+    @PreAuthorize("hasRole('ROLE_USER')")
     @RequestMapping(value = "/{username}", method = RequestMethod.GET)
     public ResponseEntity<Map> getUser(HttpServletRequest request, HttpServletResponse response,
+                                       @AuthenticationPrincipal Authentication currentUser_,
                                        @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
@@ -241,8 +251,10 @@ public class UserManagerController
      * @throws LoginException
      * @throws RepositoryException
      */
+    @PreAuthorize("hasRole('ROLE_USER')")
     @RequestMapping(value = "/{username}", method = RequestMethod.POST)
     public ResponseEntity<Map> updateUser(HttpServletRequest request, HttpServletResponse response,
+                                          @AuthenticationPrincipal Authentication currentUser_,
                                           @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
     {
         Session session = null;

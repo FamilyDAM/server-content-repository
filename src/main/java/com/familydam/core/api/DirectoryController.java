@@ -29,6 +29,9 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -65,9 +68,11 @@ public class DirectoryController
     private AuthenticatedHelper authenticatedHelper;
 
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public ResponseEntity<List<INode>> getDirectoryTree(
             HttpServletRequest request, HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_,
             @RequestParam(value = "root", required = false, defaultValue = "/") String path)
             throws RepositoryException
     {
@@ -106,9 +111,11 @@ public class DirectoryController
      * @return
      * @throws RepositoryException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<Collection<Directory>> createNewDirectory(
             HttpServletRequest request, HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_,
             @RequestParam(value = "path", required = false, defaultValue = "/dam:files/") String path,
             @RequestParam(value = "name", required = false, defaultValue = "New Folder") String name)
             throws RepositoryException
@@ -171,10 +178,11 @@ public class DirectoryController
      * @return
      * @throws RepositoryException
      */
-
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/", method = RequestMethod.DELETE)
     public ResponseEntity deleteDirectory(
             HttpServletRequest request, HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_,
             @RequestBody MultiValueMap<String, String> formData)
             throws RepositoryException
     {

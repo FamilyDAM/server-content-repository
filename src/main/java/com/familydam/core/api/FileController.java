@@ -40,6 +40,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -98,9 +101,11 @@ public class FileController
      * @return
      * @throws RepositoryException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public ResponseEntity<List<INode>> getFileList(
             HttpServletRequest request, HttpServletResponse response,
+            @AuthenticationPrincipal Authentication currentUser_,
             @RequestParam(value = "path", required = false, defaultValue = "/") String path)
             throws RepositoryException
     {
@@ -162,9 +167,11 @@ public class FileController
      * @throws NoSuchWorkspaceException
      * @throws CommitFailedException
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public ResponseEntity<Object> getFileById(HttpServletRequest request,
                                               HttpServletResponse response,
+                                              @AuthenticationPrincipal Authentication currentUser_,
                                               @PathVariable(value = "id") String id) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;

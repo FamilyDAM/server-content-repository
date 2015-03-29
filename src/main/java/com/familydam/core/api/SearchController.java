@@ -23,6 +23,9 @@ import com.familydam.core.services.AuthenticatedHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,9 +54,11 @@ public class SearchController
     private AuthenticatedHelper authenticatedHelper;
 
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public ResponseEntity<Collection<INode>> searchByKeyword(HttpServletRequest request,
                                    HttpServletResponse response,
+                                   @AuthenticationPrincipal Authentication currentUser_,
                                    @PathVariable(value = "type") String type,
                                    @RequestParam(value = "keywords", required = true) String keywords,
                                    @RequestParam(value = "orderBy", required = false, defaultValue = "jcr:lastModified") String orderBy,
@@ -62,12 +67,14 @@ public class SearchController
     {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    
-    
 
+
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/{type}", method = RequestMethod.GET)
     public ResponseEntity<Collection<INode>> searchByType(HttpServletRequest request,
                                    HttpServletResponse response,
+                                   @AuthenticationPrincipal Authentication currentUser_,
                                    @PathVariable(value = "type") String type,
                                    @RequestParam(value = "orderBy", required = false, defaultValue = "jcr:lastModified") String orderBy,
                                    @RequestParam(value = "limit", required = false, defaultValue = "100") Integer limit,
