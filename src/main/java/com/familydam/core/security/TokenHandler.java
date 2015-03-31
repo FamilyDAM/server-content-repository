@@ -19,11 +19,14 @@ package com.familydam.core.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -34,19 +37,27 @@ public class TokenHandler
 {
     @Value("${token-secret}")
     private String secret;
-    @Autowired
-    private UserDetailServiceImpl userService;
+
+    @Autowired private UserDetailServiceImpl userService;
+    @Autowired private TokenProvider tokenProvider;
 
     public TokenHandler( ) {
     }
 
     public UserDetails parseUserFromToken(String token) {
+
+        TokenInfo tokenInfo = tokenProvider.getTokenInfo(token);
+        String _userId = tokenInfo.getUserId();
+        return userService.loadUserById(_userId);
+
+        /**
         String username = Jwts.parser()
                 .setSigningKey(secret)
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
         return userService.loadUserByUsername(username);
+         **/
     }
 
 
@@ -54,7 +65,10 @@ public class TokenHandler
         long issuedAt = System.currentTimeMillis() / 1000L;
         long expiresAt = issuedAt + 3600L;//1 hour
 
-        // todo: change email to webid
+        TokenInfo tokenInfo = tokenProvider.createToken(user.getJcr_uuid(), Collections.emptyMap());
+        return tokenInfo.getToken();
+
+        /**
         return Jwts.builder()
                 .claim("typ", "JWT")
                 .claim( "jti", UUID.randomUUID().toString() )
@@ -64,5 +78,6 @@ public class TokenHandler
                 .setSubject(user.getPrincipalName())
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
+        **/
     }
 }

@@ -21,8 +21,6 @@ import com.familydam.core.FamilyDAM;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.services.AuthenticatedHelper;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.QueryBuilder;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,11 +34,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 /**
  * Created by mnimer on 3/28/15.
@@ -92,6 +86,7 @@ public class UserDao
     }
 
 
+
     public CustomUserDetails getUserByPrincipal(String principal_) throws UsernameNotFoundException
     {
         Session session = null;
@@ -119,6 +114,43 @@ public class UserDao
         }
         catch(RepositoryException ex){
             throw new UsernameNotFoundException(principal_);
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
+    }
+
+
+
+    public CustomUserDetails getUserById(String id_) throws UsernameNotFoundException
+    {
+        Session session = null;
+        try {
+            Credentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+
+            //todo: add "admin" filter, so it's not allowed.
+            session = repository.login(credentials, null);
+
+            UserManager userManager = (((SessionImpl) session).getUserManager());
+            Authorizable authorizable = userManager.getAuthorizable(id_);
+
+            CustomUserDetails _user = new CustomUserDetails();
+            _user.setPrincipalName(authorizable.getID());
+            _user.setPath(authorizable.getPath());
+
+            if (_user != null) {
+                Collection<? extends GrantedAuthority> _roles = AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN");
+                _user.setAuthorities(_roles);
+                return _user;
+            }
+
+
+            throw new UsernameNotFoundException(id_);
+        }
+        catch(RepositoryException ex){
+            throw new UsernameNotFoundException(id_);
         }
         finally {
             if (session != null) {

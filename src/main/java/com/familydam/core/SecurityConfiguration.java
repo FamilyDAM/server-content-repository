@@ -17,12 +17,17 @@
 
 package com.familydam.core;
 
-import com.familydam.core.security.CustomAuthenticationProvider;
 import com.familydam.core.security.TokenAuthFilter;
 import com.familydam.core.security.TokenHandler;
+import org.apache.commons.collections.map.HashedMap;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.jaas.DefaultJaasAuthenticationProvider;
+import org.springframework.security.authentication.jaas.JaasAuthenticationProvider;
+import org.springframework.security.authentication.jaas.memory.InMemoryConfiguration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,6 +39,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
+import javax.security.auth.login.AppConfigurationEntry;
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Created by mnimer on 1/26/15.
  */
@@ -42,7 +51,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter
 {
-    @Autowired private CustomAuthenticationProvider authenticationProvider;
 
     @Autowired private TokenHandler tokenHandler;
 
@@ -73,8 +81,11 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth, UserDetailsService userDetailService) throws Exception
     {
+        JaasAuthenticationProvider jaasAuthenticationProvider = new JaasAuthenticationProvider();
+
         auth
-                .authenticationProvider(authenticationProvider)
+                //.authenticationProvider(authenticationProvider)
+                .authenticationProvider(defaultJaasAuthenticationProvider())
                 .userDetailsService(userDetailService)
                 .passwordEncoder(new BCryptPasswordEncoder());
 
@@ -84,5 +95,32 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     public AuthenticationEntryPoint unauthorizedEntryPoint() {
         return null;
         //return (request, response, authException) => response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+    }
+
+
+    @Bean
+    public DefaultJaasAuthenticationProvider defaultJaasAuthenticationProvider(){
+
+        AppConfigurationEntry entry1 = new AppConfigurationEntry("org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule", AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, Collections.EMPTY_MAP);
+        AppConfigurationEntry entry2 = new AppConfigurationEntry("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.EMPTY_MAP);
+        AppConfigurationEntry[] entries = new AppConfigurationEntry[]{entry1,entry2};
+
+
+        Map<String, AppConfigurationEntry[]> configEntries = new HashedMap();
+        configEntries.put("SPRINGSECURITY", entries);
+
+        InMemoryConfiguration configuration = new InMemoryConfiguration(configEntries);
+
+
+        DefaultJaasAuthenticationProvider provider = new DefaultJaasAuthenticationProvider();
+        provider.setConfiguration(configuration);
+        return provider;
+    }
+
+
+    @Bean
+    public TokenProvider tokenProvider()
+    {
+        return CompositeTokenProvider.newInstance(TokenProvider.class);
     }
 }

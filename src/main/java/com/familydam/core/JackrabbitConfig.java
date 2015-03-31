@@ -29,7 +29,9 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -65,6 +67,7 @@ public class JackrabbitConfig
 {
     //@Autowired() private ImageRenditionsService imageRenditionsService;
 
+
     @Bean
     public Repository jcrRepository()
     {
@@ -81,21 +84,27 @@ public class JackrabbitConfig
             // generate a phash for each image (so we can find like photos & duplicates)
             //ImagePHashObserver imagePHashObserver = new ImagePHashObserver("/dam");
 
+            //SecurityProvider securityProvider = new SecurityProviderImpl(ConfigurationParameters.EMPTY);
+            //SecurityProvider openSecurityProvider = new OpenSecurityProvider();
+
+
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
+                    .with(new SecurityProviderImpl(ConfigurationParameters.EMPTY))
                     .with(new DirectoryObserver("/dam:files/", JcrConstants.JCR_NAME))
-                    //.with(new BackgroundObserver(imageExifObserver, observerExecutor))
-                    //.with(new BackgroundObserver(imagePHashObserver, observerExecutor))
+                            //.with(new BackgroundObserver(imageExifObserver, observerExecutor))
+                            //.with(new BackgroundObserver(imagePHashObserver, observerExecutor))
                     .withAsyncIndexing();
 
 
             // Create repository
             Repository repository = jcr.createRepository();
 
+
             // Using the CND file, make sure all of the required mix-ins have been created.
             registerCustomNodeTypes(repository);
-            
+
             registerSystemDirectories(repository);
             registerCustomUsers(repository);
 
@@ -115,9 +124,10 @@ public class JackrabbitConfig
 
     /**
      * Using the CND file, make sure all of the required mix-ins have been created.
+     *
      * @param repository
      */
-    
+
     private void registerCustomNodeTypes(Repository repository)
     {
         Session session = null;
@@ -154,10 +164,14 @@ public class JackrabbitConfig
             //CndImporter.registerNodeTypes(new InputStreamReader(is), session, true);
 
             session.save();
-        }catch(Exception ex){
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
-        }finally {
-            if( session != null) session.logout();
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
 
@@ -185,13 +199,16 @@ public class JackrabbitConfig
             _cloudNode.setProperty("order", "2");
 
             session.save();
-        }catch(Exception ex){
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
-        }finally {
-            if( session != null) session.logout();
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
-
 
 
     private void registerCustomUsers(Repository repository)
@@ -210,10 +227,10 @@ public class JackrabbitConfig
             QueryResult result = query.execute();
 
             javax.jcr.NodeIterator nodeItr = result.getNodes();
-            while ( nodeItr.hasNext() ) {
+            while (nodeItr.hasNext()) {
                 javax.jcr.Node node = nodeItr.nextNode();
 
-                if( !node.getPath().equals("/") ) {
+                if (!node.getPath().equals("/")) {
                     for (String user : users) {
                         Node _node = JcrUtils.getOrAddFolder(node, user);
                         _node.addMixin("mix:created");
@@ -226,10 +243,14 @@ public class JackrabbitConfig
             }
 
             session.save();
-        }catch(Exception ex){
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
-        }finally {
-            if( session != null) session.logout();
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
 
@@ -265,10 +286,6 @@ public class JackrabbitConfig
             throw new RuntimeException(ex);
         }
     }
-
-
-
-
 
 
     @Bean

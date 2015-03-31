@@ -18,14 +18,15 @@
 package com.familydam.core.services;
 
 import com.familydam.core.FamilyDAMConstants;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Base64;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +42,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Created by mnimer on 9/23/14.
@@ -48,7 +50,7 @@ import java.util.Map;
 @Service
 public class AuthenticatedHelper
 {
-    Logger logger = LoggerFactory.getLogger(this.getClass());
+    Log log = LogFactory.getLog(this.getClass());
 
     @Autowired private Repository repository;
 
@@ -104,47 +106,25 @@ public class AuthenticatedHelper
     public Session getSession(HttpServletRequest request, HttpServletResponse response) throws RepositoryException, AuthenticationException
     {
         Credentials credentials = null;
-        Cookie[] cookies = request.getCookies();
 
-        Map<String, String> cookieMap = new HashMap<>();
-        if( cookies != null ) {
-            for (Cookie cookie : cookies) {
-                cookieMap.put(cookie.getName(), cookie.getValue());
-            }
+        Optional _tokenHeader = Optional.ofNullable(request.getHeader(FamilyDAMConstants.XAUTHTOKEN));
+        Optional _tokenUrlParam = Optional.ofNullable(request.getParameter(FamilyDAMConstants.XAUTHTOKENPARAM));
+
+        String token = null;
+
+        if (_tokenHeader.isPresent() ) {
+            log.debug("Trying to authenticate user by X-Auth-Token method. Token: " + token);
+            token = (String)_tokenHeader.get();
+        }else if( _tokenUrlParam.isPresent() ){
+            log.debug("Trying to authenticate user by token url parameter. Token: " + token);
+            token = (String)_tokenUrlParam.get();
         }
 
 
-        String authorization = request.getHeader("Authorization");
-        if (authorization != null && authorization.startsWith("Basic "))
-        {
-            String[] basic = Base64.decode(authorization.substring("Basic ".length())).split(":");
+        if (token != null) {
+            credentials = new TokenCredentials(token);
+        }
 
-            if( basic.length == 2 ) {
-                credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-
-                Cookie _cookie = new Cookie("x-auth-token", authorization);
-                _cookie.setDomain(".localhost");
-                _cookie.setHttpOnly(true);
-                response.addCookie(_cookie);
-
-                request.getSession().setAttribute("x-auth-token", authorization);
-            }
-        }
-        else if (cookieMap.containsKey("x-auth-token") ) {
-            String[] basic = Base64.decode(cookieMap.get("authorization").substring("Basic ".length())).split(":");
-            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-        }
-        else if (request.getParameter("token") != null ) {
-            String[] basic = Base64.decode(request.getParameter("token").substring("Basic ".length())).split(":");
-            credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-        }
-        else {
-            String username = request.getParameter("j_username");
-            String password = request.getParameter("j_password");
-            if( username != null && password != null ){
-                credentials = new SimpleCredentials(username, password.toCharArray());
-            }
-        }
 
         if (credentials == null) {
             throw new AuthenticationException();

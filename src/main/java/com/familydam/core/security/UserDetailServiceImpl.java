@@ -19,13 +19,10 @@ package com.familydam.core.security;
 
 import com.familydam.core.dao.UserDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * Created by mnimer on 1/26/15.
@@ -46,35 +43,10 @@ public class UserDetailServiceImpl implements UserDetailsService
     }
 
 
-    
-    
-    /**
-     * TODO replace with a proper spring security filter
-     * @param request_
-     * @param authentication_
-     * @return
-     */
-    public User validateUser(HttpServletRequest request_, Authentication authentication_)
+    public UserDetails loadUserById(String id_) throws UsernameNotFoundException
     {
-        if( authentication_ != null ) {
-            return (User) loadUserByUsername((String) authentication_.getPrincipal());
-        }else{
-            //String _token = request_.getHeader("X-AUTH-TOKEN");
-            //todo use token to authenticate the user and pull up their data
-            throw new SecurityException();
-        }
+        CustomUserDetails user = userDao.getUserById(id_);
+        return user;
     }
 
-
-    /**
-     * Generate a JWT token we can use for future requests
-     * TODO we might want to replace with a proper spring security filter
-     * @param user_
-     * @return
-     */
-    public String generateToken(User user_)
-    {
-        String _token = tokenHandler.createTokenForUser(user_);
-        return _token;
-    }
 }
