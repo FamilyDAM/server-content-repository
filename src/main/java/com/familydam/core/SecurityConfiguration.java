@@ -20,11 +20,14 @@ package com.familydam.core;
 import com.familydam.core.security.TokenAuthFilter;
 import com.familydam.core.security.TokenHandler;
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenProvider;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.jaas.AuthorityGranter;
 import org.springframework.security.authentication.jaas.DefaultJaasAuthenticationProvider;
 import org.springframework.security.authentication.jaas.JaasAuthenticationProvider;
 import org.springframework.security.authentication.jaas.memory.InMemoryConfiguration;
@@ -101,9 +104,13 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     @Bean
     public DefaultJaasAuthenticationProvider defaultJaasAuthenticationProvider(){
 
+        //AppConfigurationEntry entry0 = new AppConfigurationEntry("org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.EMPTY_MAP);
         AppConfigurationEntry entry1 = new AppConfigurationEntry("org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule", AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, Collections.EMPTY_MAP);
         AppConfigurationEntry entry2 = new AppConfigurationEntry("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.EMPTY_MAP);
         AppConfigurationEntry[] entries = new AppConfigurationEntry[]{entry1,entry2};
+
+
+        AuthorityGranter[] authorityGranters = new AuthorityGranter[0];
 
 
         Map<String, AppConfigurationEntry[]> configEntries = new HashedMap();
@@ -114,13 +121,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
 
         DefaultJaasAuthenticationProvider provider = new DefaultJaasAuthenticationProvider();
         provider.setConfiguration(configuration);
+        provider.setAuthorityGranters(authorityGranters);
         return provider;
     }
 
 
-    @Bean
-    public TokenProvider tokenProvider()
-    {
-        return CompositeTokenProvider.newInstance(TokenProvider.class);
-    }
 }

@@ -39,16 +39,17 @@ public class TokenHandler
     private String secret;
 
     @Autowired private UserDetailServiceImpl userService;
-    @Autowired private TokenProvider tokenProvider;
 
     public TokenHandler( ) {
     }
 
     public UserDetails parseUserFromToken(String token) {
 
-        TokenInfo tokenInfo = tokenProvider.getTokenInfo(token);
-        String _userId = tokenInfo.getUserId();
-        return userService.loadUserById(_userId);
+        System.out.println(token);
+        return null;
+        //TokenInfo tokenInfo = tokenProvider.getTokenInfo(token);
+        //String _userId = tokenInfo.getUserId();
+        //return userService.loadUserById(_userId);
 
         /**
         String username = Jwts.parser()
@@ -65,8 +66,8 @@ public class TokenHandler
         long issuedAt = System.currentTimeMillis() / 1000L;
         long expiresAt = issuedAt + 3600L;//1 hour
 
-        TokenInfo tokenInfo = tokenProvider.createToken(user.getJcr_uuid(), Collections.emptyMap());
-        return tokenInfo.getToken();
+        //TokenInfo tokenInfo = tokenProvider.createToken(user.getJcr_uuid(), Collections.emptyMap());
+        return user.getJcr_uuid();//tokenInfo.getToken();
 
         /**
         return Jwts.builder()

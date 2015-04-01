@@ -26,12 +26,16 @@ import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -276,6 +280,7 @@ public class JackrabbitConfig
                             //.with(new OpenSecurityProvider())
                             //.with(new PropertyIndexHook())     // simple indexing support
                             //.with(new PropertyIndexProvider()) // search support for the indexes
+                    //.with(securityProvider())
                     .with(new CommitDAMHook())
                     .withAsyncIndexing();
 
@@ -335,4 +340,24 @@ public class JackrabbitConfig
     }
 
 
+    @Bean
+    public SecurityProvider securityProvider()
+    {
+        return new SecurityProviderImpl(ConfigurationParameters.EMPTY);
+    }
+
+
+    //-------------------------------------------------< TokenConfiguration >---
+    /**
+     * Returns a new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
+     *
+     * @param root The target root.
+     * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
+
+    @Bean
+    @Override
+    public TokenProvider getTokenProvider(Root root) {
+        UserConfiguration uc = securityProvider().getConfiguration(UserConfiguration.class);
+        return new TokenProviderImpl(root, getParameters(), uc);
+    }*/
 }
