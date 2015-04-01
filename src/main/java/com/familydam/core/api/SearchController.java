@@ -83,7 +83,7 @@ public class SearchController
         
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
 
 
             StringBuffer sql = new StringBuffer("SELECT * FROM [").append(type).append("] ");

@@ -78,7 +78,7 @@ public class DirectoryController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
             Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
@@ -122,7 +122,7 @@ public class DirectoryController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
             Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
@@ -196,7 +196,7 @@ public class DirectoryController
         Session session = null;
         String path = formData.get("path").get(0);
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
             Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 

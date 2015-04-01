@@ -124,8 +124,11 @@ public class TokenAuthFilter implements Filter
     {
         try {
             CustomUserDetails user = (CustomUserDetails) tokenHandler.parseUserFromToken(token);
-            return new UserAuthentication(user);
 
+            UserAuthentication authentication = new UserAuthentication(user);
+            authentication.setCredentials(user.getCredentials());
+
+            return authentication;
         }catch(Exception ex){
             throw new AuthenticationException(ex.getMessage(), ex);
         }

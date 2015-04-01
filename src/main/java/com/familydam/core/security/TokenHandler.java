@@ -17,6 +17,8 @@
 
 package com.familydam.core.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,12 +43,15 @@ public class TokenHandler
     }
 
     public UserDetails parseUserFromToken(String token) {
-        String username = Jwts.parser()
+        Jws<Claims> _token = Jwts.parser()
                 .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
-        return userService.loadUserByUsername(username);
+                .parseClaimsJws(token);
+
+        //return userService.loadUserByUsername(username);
+
+        String _username = (String)_token.getBody().get("u");
+        String _password = (String)_token.getBody().get("p");
+        return userService.loadUser(_username, _password);
     }
 
 
@@ -61,7 +66,9 @@ public class TokenHandler
                 .claim( "iss", "familydam.com" )
                 .claim( "iat", issuedAt )
                 .claim( "exp", expiresAt )
-                .setSubject(user.getPath())
+                .claim( "u", user.getPrincipalName()) //todo remove
+                .claim( "p", user.getPassword()) //todo, remove when we get TokenLoginModule working - this is a really bad thing to include in a jwt token.
+                .setSubject(user.getPrincipalName())
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }

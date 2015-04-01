@@ -20,6 +20,7 @@ package com.familydam.core.security;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
+import javax.jcr.Credentials;
 import java.util.Collection;
 
 /**
@@ -29,6 +30,8 @@ public class UserAuthentication implements Authentication
 {
     private final User user;
     private boolean authenticated = true;
+
+    private Credentials credentials;
 
 
     public UserAuthentication(CustomUserDetails user)
@@ -57,10 +60,15 @@ public class UserAuthentication implements Authentication
     }
 
 
-    @Override
-    public Object getCredentials()
+    @Override public Credentials getCredentials()
     {
-        return null;
+        return credentials;
+    }
+
+
+    public void setCredentials(Credentials credentials)
+    {
+        this.credentials = credentials;
     }
 
 

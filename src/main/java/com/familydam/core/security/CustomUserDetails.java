@@ -48,10 +48,10 @@ public class CustomUserDetails extends User implements UserDetails
     }
 
     @Override public String getUsername(){
-        return getPrincipalName();
+        return super.getPrincipalName();
     }
 
-    @Override public String getPassword() { return null; }
+    @Override public String getPassword() { return super.getPassword(); }
 
     @Override public boolean isEnabled(){
         return true;

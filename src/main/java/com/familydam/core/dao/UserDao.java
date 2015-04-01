@@ -62,7 +62,9 @@ public class UserDao
             Authorizable authorizable = userManager.getAuthorizable(session.getUserID());
 
             _user = new CustomUserDetails();
+            _user.setCredentials(credentials);
             _user.setPrincipalName(authorizable.getID());
+            _user.setPassword(password_);
             _user.setPath(authorizable.getPath());
 
 

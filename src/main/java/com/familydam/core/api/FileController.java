@@ -172,7 +172,7 @@ public class FileController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node node = session.getNodeByIdentifier(id);
 
             if (node.isNodeType(JcrConstants.NT_FILE)) {

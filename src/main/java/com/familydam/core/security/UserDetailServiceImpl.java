@@ -43,4 +43,11 @@ public class UserDetailServiceImpl implements UserDetailsService
     }
 
 
+    public UserDetails loadUser(String principal_, String password_) throws UsernameNotFoundException
+    {
+        CustomUserDetails user = userDao.getUser(principal_, password_);
+        return user;
+    }
+
+
 }

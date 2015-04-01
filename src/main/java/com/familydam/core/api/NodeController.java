@@ -94,7 +94,7 @@ public class NodeController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             String _relativePath = request.getRequestURI().replace("%20", " ");
             Node contentRoot = authenticatedHelper.getContentRoot(session, _relativePath);
 
@@ -151,7 +151,7 @@ public class NodeController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node node = session.getNodeByIdentifier(id);
 
             if (node.isNodeType(JcrConstants.NT_FILE)) {
@@ -203,7 +203,7 @@ public class NodeController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node node = session.getNodeByIdentifier(id_);
 
             node.remove();

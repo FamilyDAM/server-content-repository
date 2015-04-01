@@ -17,6 +17,7 @@
 
 package com.familydam.core.security;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.io.Serializable;
@@ -33,6 +34,8 @@ public class User implements Serializable
     private String path  = null;
     private String created = null;
     private String createdBy = null;
+    @JsonIgnore
+    private String password = null;
 
 
     // Authorized Roles
@@ -96,6 +99,18 @@ public class User implements Serializable
     public void setCreatedBy(String createdBy)
     {
         this.createdBy = createdBy;
+    }
+
+
+    public String getPassword()
+    {
+        return password;
+    }
+
+
+    public void setPassword(String password)
+    {
+        this.password = password;
     }
 
 

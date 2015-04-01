@@ -87,6 +87,8 @@ public class UserManagerController
     {
         CustomUserDetails customUserDetails = userDao.getUser(username_, password_);
 
+        customUserDetails.setPrincipalName(username_);
+        customUserDetails.setPassword(password_);
         String _token = tokenHandler.createTokenForUser(customUserDetails);
 
         MultiValueMap<String, String> _headers = new LinkedMultiValueMap<>();
@@ -219,7 +221,7 @@ public class UserManagerController
     {
         Session session = null;
         try{
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             //UserManager userManager = getUserManager(session);
             //Authorizable user = userManager.getAuthorizable(username);
             //NodeUtil userNode = new NodeUtil(session.getLatestRoot().getTree(user.getPath()));
@@ -259,7 +261,7 @@ public class UserManagerController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             //UserManager userManager = getUserManager(session);
             //Authorizable user = userManager.getAuthorizable(username);
 
