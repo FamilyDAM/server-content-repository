@@ -41,12 +41,12 @@ public class SimpleCorsFilter extends OncePerRequestFilter
     {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");//HEAD, TRACE, PATCH
-        response.setHeader("Access-Control-Allow-Headers", "origin, x-auth-token, x-auth-token-refresh, x-requested-with, x-csrf-token, content-type, accept, authentication, authorization");
-        response.setHeader("Access-Control-Expose-Headers", "origin, x-auth-token, x-auth-token-refresh, x-requested-with, x-csrf-token, content-type, accept, authentication, authorization");
+        response.setHeader("Access-Control-Allow-Headers", "origin,x-auth-token,x-auth-token-refresh,x-requested-with, x-csrf-token, content-type, accept, authentication, authorization");
+        response.setHeader("Access-Control-Expose-Headers", "origin,x-auth-token,x-auth-token-refresh,x-requested-with, x-csrf-token, content-type, accept, authentication, authorization");
         response.setHeader("Access-Control-Max-Age", "3600");
 
 
-        if (request.getMethod() != "OPTIONS") {
+        if ( !request.getMethod().equalsIgnoreCase("OPTIONS") ) {
             chain.doFilter(request, response);
         }
     }

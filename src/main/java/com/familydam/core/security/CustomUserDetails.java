@@ -20,6 +20,7 @@ package com.familydam.core.security;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import javax.jcr.Credentials;
 import java.util.Collection;
 
 /**
@@ -27,6 +28,20 @@ import java.util.Collection;
  */
 public class CustomUserDetails extends User implements UserDetails
 {
+    private Credentials credentials;
+
+
+    public Credentials getCredentials()
+    {
+        return credentials;
+    }
+
+
+    public void setCredentials(Credentials credentials)
+    {
+        this.credentials = credentials;
+    }
+
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities(){
         return super.getAuthorities();

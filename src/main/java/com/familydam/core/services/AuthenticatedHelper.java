@@ -17,16 +17,23 @@
 
 package com.familydam.core.services;
 
+import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import javax.jcr.Credentials;
@@ -153,6 +160,23 @@ public class AuthenticatedHelper
         Session session = repository.login(credentials, null);
         return session;
     }
+
+
+    public Session getSession(Authentication authentication_) throws RepositoryException
+    {
+        AuthInfo authInfo = new AuthInfoImpl(authentication_.getName(), null, null);
+        Credentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+        Credentials credentials2 = new ImpersonationCredentials(credentials, authInfo);
+
+        Credentials credentials3 = new UserIdCredentials(authentication_.getName());
+        Credentials credentials4 = new TokenCredentials(authentication_.getName());
+
+        //Session session = repository.login(credentials);
+        //Session session = repository.login(credentials2);
+        Session session = repository.login((Credentials)authentication_.getCredentials());
+        return session;
+    }
+
 
 
     public Session getSession(Credentials credentials) throws RepositoryException

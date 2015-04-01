@@ -59,7 +59,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.login.LoginException;
-import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
@@ -111,7 +110,7 @@ public class FileController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
             Node contentRoot = authenticatedHelper.getContentRoot(session, path);
 
@@ -139,9 +138,6 @@ public class FileController
 
 
             return new ResponseEntity<>(childNodes, HttpStatus.OK);
-        }
-        catch (AuthenticationException ae) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         catch (Exception ex) {
             log.error(ex);

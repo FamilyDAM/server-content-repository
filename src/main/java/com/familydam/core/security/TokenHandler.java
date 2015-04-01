@@ -61,7 +61,7 @@ public class TokenHandler
                 .claim( "iss", "familydam.com" )
                 .claim( "iat", issuedAt )
                 .claim( "exp", expiresAt )
-                .setSubject(user.getPrincipalName())
+                .setSubject(user.getPath())
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }
