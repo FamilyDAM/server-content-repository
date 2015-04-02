@@ -89,10 +89,18 @@ public class UserManagerController
 
         customUserDetails.setPrincipalName(username_);
         customUserDetails.setPassword(password_);
-        String _token = tokenHandler.createTokenForUser(customUserDetails);
+
 
         MultiValueMap<String, String> _headers = new LinkedMultiValueMap<>();
-        _headers.add(FamilyDAMConstants.XAUTHTOKENREFRESH, _token);
+        if( customUserDetails.getCredentials() != null ) {
+            String token = ((SimpleCredentials) customUserDetails.getCredentials()).getAttribute(".token").toString();
+            //_headers.add("token", token);
+            _headers.add(FamilyDAMConstants.XAUTHTOKEN, token);
+        }else {
+            // we should not support the else scenarion
+            //String _token = tokenHandler.createTokenForUser(customUserDetails);
+            //_headers.add(FamilyDAMConstants.XAUTHTOKENREFRESH, _token);
+        }
 
         return new ResponseEntity<>(customUserDetails, _headers, HttpStatus.OK);
 
@@ -116,8 +124,7 @@ public class UserManagerController
     @RequestMapping(method = {RequestMethod.GET})
     public ResponseEntity<Collection<Map>> getUserList(
             HttpServletRequest request,
-            HttpServletResponse response,
-            @AuthenticationPrincipal Authentication currentUser_) throws IOException, LoginException, RepositoryException
+            HttpServletResponse response) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try {

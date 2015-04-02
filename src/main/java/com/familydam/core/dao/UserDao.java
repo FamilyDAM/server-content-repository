@@ -53,7 +53,8 @@ public class UserDao
 
         Session session = null;
         try {
-            Credentials credentials = new SimpleCredentials(username_, password_.toCharArray());
+            SimpleCredentials credentials = new SimpleCredentials(username_, password_.toCharArray());
+            credentials.setAttribute(".token", "");
 
             //todo: add "admin" filter, so it's not allowed.
             session = repository.login(credentials, null);

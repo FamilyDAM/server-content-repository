@@ -18,6 +18,9 @@
 package com.familydam.core.services;
 
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.security.CustomUserDetails;
+import com.familydam.core.security.UserAuthentication;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -109,8 +112,13 @@ public class AuthenticatedHelper
      */
     public Session getSession(Authentication authentication_) throws AuthenticationException
     {
-        Credentials credentials = (Credentials) authentication_.getCredentials();
-        return getSession(credentials);
+        if( ((CustomUserDetails) ((UserAuthentication) authentication_).getUser()).getSession() != null ){
+            return ((CustomUserDetails) ((UserAuthentication) authentication_).getUser()).getSession();
+        }else {
+            Credentials credentials = (Credentials) authentication_.getCredentials();
+            Session session = getSession(credentials);
+            return session;
+        }
     }
 
 

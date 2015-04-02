@@ -18,6 +18,7 @@
 package com.familydam.core.api.userManager;
 
 import com.familydam.core.FamilyDAM;
+import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.api.fileManager.RootDirTest;
 import junit.framework.Assert;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -94,7 +95,29 @@ public class UserManagerTests
                 .andExpect(status().isOk())
                 .andReturn();
 
+        String jcrToken = result.getResponse().getHeader("token");
+        Assert.assertTrue(jcrToken.length() > 0);
         String resultJson = result.getResponse().getContentAsString();
+        logger.debug(resultJson);
+    }
+
+
+    @Test
+    public void loginUserWithToken() throws Exception
+    {
+        MvcResult result = this.mockMvc
+                .perform(post(rootUrl + "/api/users/login").param("username", "admin").param("password", "admin"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String jcrToken = result.getResponse().getHeader(FamilyDAMConstants.XAUTHTOKEN);
+
+        MvcResult result2 = this.mockMvc
+                .perform(get(rootUrl + "/api/users/admin").header(FamilyDAMConstants.XAUTHTOKEN, jcrToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String resultJson = result2.getResponse().getContentAsString();
         logger.debug(resultJson);
     }
 
@@ -113,9 +136,7 @@ public class UserManagerTests
     }
 
 
-    //@Ignore
-    @Test
-    public Iterator<Authorizable> listUsersRaw() throws Exception
+    public Iterator<Authorizable>  listUsersRaw() throws Exception
     {
 
         Session session = null;
@@ -169,6 +190,7 @@ public class UserManagerTests
     }
 
 
+    @Ignore
     @Test
     public void createLoginAndRemoveUserRaw() throws Exception
     {

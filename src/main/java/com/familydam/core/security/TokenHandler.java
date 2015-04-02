@@ -67,7 +67,7 @@ public class TokenHandler
                 .claim( "iat", issuedAt )
                 .claim( "exp", expiresAt )
                 .claim( "u", user.getPrincipalName()) //todo remove
-                .claim( "p", user.getPassword()) //todo, remove when we get TokenLoginModule working - this is a really bad thing to include in a jwt token.
+                .claim("p", user.getPassword()) //todo, remove when we get TokenLoginModule working - this is a really bad thing to include in a jwt token.
                 .setSubject(user.getPrincipalName())
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();

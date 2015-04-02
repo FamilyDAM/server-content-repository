@@ -20,10 +20,15 @@ package com.familydam.core.security;
 import com.familydam.core.FamilyDAMConstants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import javax.jcr.Credentials;
+import javax.jcr.Repository;
+import javax.jcr.Session;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -44,11 +49,17 @@ public class TokenAuthFilter implements Filter
     Log log = LogFactory.getLog(this.getClass());
 
     private TokenHandler tokenHandler;
+    private UserDetailServiceImpl userService;
+    private Repository repository;
+    private SecurityProvider securityProvider;
 
 
-    public TokenAuthFilter(TokenHandler tokenHandler)
+    public TokenAuthFilter(TokenHandler tokenHandler, UserDetailServiceImpl userService, Repository repository, SecurityProvider securityProvider)
     {
         this.tokenHandler = tokenHandler;
+        this.userService = userService;
+        this.repository = repository;
+        this.securityProvider = securityProvider;
     }
 
 
@@ -91,9 +102,11 @@ public class TokenAuthFilter implements Filter
                 // set auth for request
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
+
+
                 // generate a new token, same data with new expire dates and return it.
-                String _newToken = tokenHandler.createTokenForUser(  ((UserAuthentication)authentication).getUser()  );
-                ((HttpServletResponse) response).setHeader(FamilyDAMConstants.XAUTHTOKENREFRESH, _newToken);
+                //String _newToken = tokenHandler.createTokenForUser(  ((UserAuthentication)authentication).getUser()  );
+                //((HttpServletResponse) response).setHeader(FamilyDAMConstants.XAUTHTOKENREFRESH, _newToken);
 
                 // call next filter
                 chain.doFilter(request, response);
@@ -120,19 +133,34 @@ public class TokenAuthFilter implements Filter
     }
 
 
-    private UserAuthentication  processTokenAuthentication(String token) throws AuthenticationException
+    private UserAuthentication  processTokenAuthentication(String token_) throws AuthenticationException
     {
         try {
-            CustomUserDetails user = (CustomUserDetails) tokenHandler.parseUserFromToken(token);
+            Credentials _credentials = new TokenCredentials(token_);
+            ((TokenCredentials)_credentials).setAttribute(".token", "");
+            Session session = repository.login(_credentials);
+            CustomUserDetails user = (CustomUserDetails)userService.loadUserByUsername(session.getUserID());
+            user.setSession(session);
+
+            //reset token
+            //Node root = session.getRootNode();
+            //SecurityProvider sp = getSecurityProvider();
+            //TokenConfiguration tc = securityProvider.getConfiguration(TokenConfiguration.class);
+            //TokenProvider tp = tc.getTokenProvider(root);
+            //TokenInfo tokenInfo = tp.createToken(_credentials);
+
 
             UserAuthentication authentication = new UserAuthentication(user);
-            authentication.setCredentials(user.getCredentials());
+            // save the authenticated user object in the Spring Security Context
+            authentication.setCredentials(_credentials);
+
 
             return authentication;
         }catch(Exception ex){
             throw new AuthenticationException(ex.getMessage(), ex);
         }
     }
+
 }
 
 

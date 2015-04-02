@@ -29,7 +29,10 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -48,12 +51,16 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import javax.security.auth.login.AppConfigurationEntry;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -89,7 +96,6 @@ public class JackrabbitConfig
                     //.with(new BackgroundObserver(imagePHashObserver, observerExecutor))
                     .withAsyncIndexing();
 
-
             // Create repository
             Repository repository = jcr.createRepository();
 
@@ -104,6 +110,10 @@ public class JackrabbitConfig
             //imageExifObserver.setRepository(repository);
             //imagePHashObserver.setRepository(repository);
 
+            javax.security.auth.login.Configuration.setConfiguration(getConfiguration());
+
+
+
             return repository;
         }
         catch (Exception ex) {
@@ -113,11 +123,81 @@ public class JackrabbitConfig
     }
 
 
+
+    private Oak getOak()
+    {
+        try {
+            File repoDir = new File("./familydam-repo");
+            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
+
+            FileBlobStore fileBlobStore = new FileBlobStore(repoDir.getAbsolutePath());
+            FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
+            //int maxFileSize = 1024 * 1024; //1gig
+            //FileStore source = new FileStore(repoDir, maxFileSize, false);
+            NodeStore segmentNodeStore = new SegmentNodeStore(source);
+
+            Oak oak = new Oak(segmentNodeStore)
+                    .with("familyDAM")
+                    .with(new InitialDAMContent(segmentNodeStore))       // add initial content and folder structure
+                            //.with(new SecurityProviderImpl())  // use the default security
+                            //.with(new DefaultTypeEditor())     // automatically set default types
+                            //.with(new NameValidatorProvider()) // allow only valid JCR names
+                            //.with(new OpenSecurityProvider())
+                            //.with(new PropertyIndexHook())     // simple indexing support
+                            //.with(new PropertyIndexProvider()) // search support for the indexes
+                    .with(new CommitDAMHook())
+                    .withAsyncIndexing();
+
+
+            return oak;
+        }
+        catch (IOException ex) {
+            ex.printStackTrace(); //todo handle this.
+            throw new RuntimeException(ex);
+        }
+    }
+
+
+
+
+    /****
+    @Bean
+    public SecurityProvider securityProvider()
+    {
+        return new SecurityProviderImpl(ConfigurationParameters.EMPTY);
+    }
+    ***/
+
+
+    protected javax.security.auth.login.Configuration getConfiguration() {
+        return new javax.security.auth.login.Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+
+                Map<String, Object> params = new HashMap<>();
+                params.put(TokenProvider.PARAM_TOKEN_EXPIRATION, 86400000);//1day
+                params.put(TokenProvider.PARAM_TOKEN_LENGTH, 1024);
+
+                AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                        params);
+
+                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap());
+                return new AppConfigurationEntry[] {tokenEntry, defaultEntry};
+            }
+        };
+    }
+
+
+
     /**
      * Using the CND file, make sure all of the required mix-ins have been created.
      * @param repository
      */
-    
     private void registerCustomNodeTypes(Repository repository)
     {
         Session session = null;
@@ -232,42 +312,6 @@ public class JackrabbitConfig
             if( session != null) session.logout();
         }
     }
-
-
-    private Oak getOak()
-    {
-        try {
-            File repoDir = new File("./familydam-repo");
-            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
-
-            FileBlobStore fileBlobStore = new FileBlobStore(repoDir.getAbsolutePath());
-            FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
-            //int maxFileSize = 1024 * 1024; //1gig
-            //FileStore source = new FileStore(repoDir, maxFileSize, false);
-            NodeStore segmentNodeStore = new SegmentNodeStore(source);
-
-            Oak oak = new Oak(segmentNodeStore)
-                    .with("familyDAM")
-                    .with(new InitialDAMContent(segmentNodeStore))       // add initial content and folder structure
-                            //.with(new SecurityProviderImpl())  // use the default security
-                            //.with(new DefaultTypeEditor())     // automatically set default types
-                            //.with(new NameValidatorProvider()) // allow only valid JCR names
-                            //.with(new OpenSecurityProvider())
-                            //.with(new PropertyIndexHook())     // simple indexing support
-                            //.with(new PropertyIndexProvider()) // search support for the indexes
-                    .with(new CommitDAMHook())
-                    .withAsyncIndexing();
-
-            return oak;
-        }
-        catch (IOException ex) {
-            ex.printStackTrace(); //todo handle this.
-            throw new RuntimeException(ex);
-        }
-    }
-
-
-
 
 
 

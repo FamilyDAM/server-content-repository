@@ -21,6 +21,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.jcr.Credentials;
+import javax.jcr.Session;
 import java.util.Collection;
 
 /**
@@ -29,6 +30,7 @@ import java.util.Collection;
 public class CustomUserDetails extends User implements UserDetails
 {
     private Credentials credentials;
+    private Session session = null;
 
 
     public Credentials getCredentials()
@@ -70,5 +72,17 @@ public class CustomUserDetails extends User implements UserDetails
     @Override public boolean isCredentialsNonExpired()
     {
         return false;
+    }
+
+
+    public Session getSession()
+    {
+        return session;
+    }
+
+
+    public void setSession(Session session)
+    {
+        this.session = session;
     }
 }

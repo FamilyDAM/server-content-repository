@@ -20,6 +20,7 @@ package com.familydam.core;
 import com.familydam.core.security.CustomAuthenticationProvider;
 import com.familydam.core.security.TokenAuthFilter;
 import com.familydam.core.security.TokenHandler;
+import com.familydam.core.security.UserDetailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
+import javax.jcr.Repository;
+
 /**
  * Created by mnimer on 1/26/15.
  */
@@ -45,6 +48,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     @Autowired private CustomAuthenticationProvider authenticationProvider;
 
     @Autowired private TokenHandler tokenHandler;
+
+    @Autowired UserDetailServiceImpl userDetailsService;
+    @Autowired Repository repository;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -64,7 +70,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
                 //.antMatchers(actuatorEndpoints()).hasRole(backendAdminRole)
                 .anyRequest().authenticated();
 
-        http.addFilterBefore(new TokenAuthFilter(tokenHandler), BasicAuthenticationFilter.class);
+        http.addFilterBefore(new TokenAuthFilter(tokenHandler, userDetailsService, repository, null), BasicAuthenticationFilter.class);
 
     }
 
