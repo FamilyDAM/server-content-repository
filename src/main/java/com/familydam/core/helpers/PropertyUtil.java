@@ -29,7 +29,9 @@ import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -103,94 +105,72 @@ public class PropertyUtil
     }
 
 
-    /**
-     * Walk the NT_UNSTRUCTURED tree adding any nest map or array objects
-     * @param node
-     * @param nodeProps
 
-    public static void readPropertyTree(Tree node, Map<String, Object> nodeProps){
 
-        for (Tree propTree : node.getChildren()) {
-            if( propTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(NodeType.NT_UNSTRUCTURED) ) {
 
-                //first, get the name
-                Map<String, Object> propMap =  new HashMap();
-                nodeProps.put(propTree.getName(), propMap);
+    public static void writeParametersToNode(Node node_, Map params_) throws AccessDeniedException, CommitFailedException, RepositoryException
+    {
+        for (Object key : params_.keySet()) {
 
-                for (PropertyState propertyState : propTree.getProperties()) {
-                    //skip name,and node type
-                    if(!propertyState.getName().equals(JcrConstants.JCR_NAME) && !propertyState.getName().equals(JcrConstants.JCR_PRIMARYTYPE)) {
-                        String _name = propertyState.getName();
-                        propMap.put(_name, propertyState.getValue(propertyState.getType()));
+            Object _val = params_.get(key);
+
+
+            if( _val instanceof Map ){
+                Node _currentNode = JcrUtils.getOrAddNode(node_, key.toString(), JcrConstants.NT_UNSTRUCTURED);
+                writeParametersToNode(_currentNode, (Map) _val);
+            }else{
+
+                boolean hasProperty = node_.hasProperty(key.toString());
+
+                // skip some system paths, like jcr:path
+                if( key.toString().startsWith("jcr:") && !hasProperty )
+                {
+                    continue;
+                }
+
+                // check & skip known protected properties
+                if( hasProperty && node_.getProperty(key.toString()).getDefinition().isProtected() ){
+                    continue;
+                }
+
+
+                //get current value, so we only update changed values
+                Value _currentProp = null;
+                Value[] _currentMultiProp = null;
+                if( hasProperty && !node_.getProperty(key.toString()).isMultiple() ) {
+                    _currentProp = node_.getProperty(key.toString()).getValue();
+                }else if( hasProperty && node_.getProperty(key.toString()).isMultiple() ) {
+                    _currentMultiProp = node_.getProperty(key.toString()).getValues();
+                }
+
+                if( _val instanceof Collection){
+                    String[] _arrVal = ((ArrayList<String>)_val).toArray( new String[((ArrayList<String>)_val).size()] );
+                    node_.setProperty(key.toString(), _arrVal);
+                }
+                else if( _val instanceof Boolean && (!hasProperty || _currentProp.getBoolean() != (Boolean)_val) ){
+                    node_.setProperty(key.toString(), (Boolean)_val );
+                }
+                else if( _val instanceof BigDecimal && (!hasProperty || _currentProp.getDecimal() != (BigDecimal)_val) ){
+                    node_.setProperty(key.toString(), (BigDecimal)_val );
+                }
+                else if( _val instanceof Long  && (!hasProperty || _currentProp.getLong() != (Long)_val)  ){
+                    node_.setProperty(key.toString(), (Long)_val );
+                }
+                else if( _val instanceof Double  && (!hasProperty || _currentProp.getDouble() != (Double)_val)  ){
+                    node_.setProperty(key.toString(), (Double)_val );
+                }
+                else if( _val instanceof String[]  ){
+                    node_.setProperty(key.toString(), (String[])_val );
+                }
+                else {
+                    if( _val != null ){
+                        _val = _val.toString();
+
+                        if( !hasProperty ||  !_currentProp.getString().equals(_val) ) {
+                            node_.setProperty(key.toString(), (String) _val);
+                        }
                     }
                 }
-
-                readPropertyTree(propTree, propMap);
-            }
-        }
-    }*/
-
-
-    /**
-     * Go down a level and add all NT_FOLDER nodes to "children" property
-     * @param node
-     * @param nodeProps
-
-    public static void readChildFolders(Tree node, Map<String, Object> nodeProps){
-
-        if( nodeProps.get(FamilyDAMConstants.CHILDREN) == null ){
-            nodeProps.put(FamilyDAMConstants.CHILDREN, new ArrayList());
-        }
-
-        // Find the child folders
-        for (Tree childFolder : node.getChildren()) {
-            if (childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE)
-                    || childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
-                    || childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)) {
-
-                //Map<String, Object> propMap = PropertyUtil.readProperties(childFolder);
-
-                //((List)nodeProps.get(FamilyDAMConstants.CHILDREN)).add(propMap);
-            }
-        }
-
-    }*/
-
-
-
-
-
-
-
-
-    public static void writeParametersToNode(NodeUtil newNode, Map<String, String[]> parameters) throws AccessDeniedException, CommitFailedException
-    {
-        for (String key : parameters.keySet()) {
-            String[] values = parameters.get(key);
-
-            // override to create nested MAP properties
-            NodeUtil currentNode = newNode;
-            if( key.matches("[0-9a-zA-Z]+\\.[0-9a-zA-Z\\w\\.]+")) {
-                String propertyPath = key.replace(".", "/");
-                int lastSpotPos = propertyPath.lastIndexOf("/");
-
-                currentNode = newNode.getOrAddTree(propertyPath.substring(0, lastSpotPos), NodeType.NT_UNSTRUCTURED);
-                key = propertyPath.substring(lastSpotPos+1);
-            }
-
-            //todo add support for Date, based on predefined format
-            if (values.length == 1) {
-
-                if (values[0].equalsIgnoreCase("true") || values[0].equalsIgnoreCase("yes") || values[0].equals("1")) {
-                    currentNode.setBoolean(key, true);
-                } else if (values[0].equalsIgnoreCase("false") || values[0].equalsIgnoreCase("no") || values[0].equals("0")) {
-                    currentNode.setBoolean(key, false);
-                } else {
-                    currentNode.setString(key, values[0]);
-                }
-
-            } else {
-                currentNode.setStrings(key, values);
             }
         }
     }
@@ -204,7 +184,60 @@ public class PropertyUtil
 
 
     /**
-    public static NodeUtil writeFileToNode(NodeUtil newNode, MultipartHttpServletRequest request) throws IOException, AccessDeniedException
+     * Walk the NT_UNSTRUCTURED tree adding any nest map or array objects
+     * @param node
+     * @param nodeProps
+
+    public static void readPropertyTree(Tree node, Map<String, Object> nodeProps){
+
+    for (Tree propTree : node.getChildren()) {
+    if( propTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(NodeType.NT_UNSTRUCTURED) ) {
+
+    //first, get the name
+    Map<String, Object> propMap =  new HashMap();
+    nodeProps.put(propTree.getName(), propMap);
+
+    for (PropertyState propertyState : propTree.getProperties()) {
+    //skip name,and node type
+    if(!propertyState.getName().equals(JcrConstants.JCR_NAME) && !propertyState.getName().equals(JcrConstants.JCR_PRIMARYTYPE)) {
+    String _name = propertyState.getName();
+    propMap.put(_name, propertyState.getValue(propertyState.getType()));
+    }
+    }
+
+    readPropertyTree(propTree, propMap);
+    }
+    }
+    }*/
+
+
+    /**
+     * Go down a level and add all NT_FOLDER nodes to "children" property
+     * @param node
+     * @param nodeProps
+
+    public static void readChildFolders(Tree node, Map<String, Object> nodeProps){
+
+    if( nodeProps.get(FamilyDAMConstants.CHILDREN) == null ){
+    nodeProps.put(FamilyDAMConstants.CHILDREN, new ArrayList());
+    }
+
+    // Find the child folders
+    for (Tree childFolder : node.getChildren()) {
+    if (childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FILE)
+    || childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_FOLDER)
+    || childFolder.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equals(JcrConstants.NT_HIERARCHYNODE)) {
+
+    //Map<String, Object> propMap = PropertyUtil.readProperties(childFolder);
+
+    //((List)nodeProps.get(FamilyDAMConstants.CHILDREN)).add(propMap);
+    }
+    }
+
+    }*/
+
+    /**
+    public static NodeUtil writeFileToNode(NodeUtil node_, MultipartHttpServletRequest request) throws IOException, AccessDeniedException
     {
         if( request.getFileMap() != null )
         {
@@ -214,10 +247,10 @@ public class PropertyUtil
                 Value[] content = new Value[1];
                 content[0] = new BinaryValue(file.getInputStream());
 
-                if( newNode.getTree().getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equalsIgnoreCase(JcrConstants.NT_FOLDER) )
+                if( node_.getTree().getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING).equalsIgnoreCase(JcrConstants.NT_FOLDER) )
                 {
                     String fileName = file.getOriginalFilename();
-                    NodeUtil fileNode = newNode.addChild(fileName, "nt:file");
+                    NodeUtil fileNode = node_.addChild(fileName, "nt:file");
                     fileNode.setString(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
                     fileNode.setString(JcrConstants.JCR_NAME, fileName);
                     fileNode.setString(JcrConstants.JCR_CREATED, "todo");//session.getAuthInfo().getUserID());
@@ -232,13 +265,13 @@ public class PropertyUtil
                     return fileNode;
                 }else{
                     // Update
-                    newNode.setValues(JcrConstants.JCR_CONTENT, content);
-                    return newNode;
+                    node_.setValues(JcrConstants.JCR_CONTENT, content);
+                    return node_;
                 }
             }
         }
 
-        return newNode;
+        return node_;
     }
      **/
 

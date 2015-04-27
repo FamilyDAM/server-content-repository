@@ -37,6 +37,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import reactor.core.Reactor;
@@ -45,6 +46,7 @@ import reactor.event.Event;
 import javax.imageio.ImageIO;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
@@ -105,7 +107,7 @@ public class NodeController
                 //response.setHeader("content-length", 1000); //todo set.
 
                 HttpHeaders headers = new HttpHeaders();
-                MediaType mediaType = MediaType.parseMediaType(contentRoot.getNode("jcr:content").getProperty("jcr:mimeType").getString());
+                MediaType mediaType = MediaType.parseMediaType(contentRoot.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_MIMETYPE).getString());
                 headers.setContentType(mediaType);
                 return new ResponseEntity(inputStreamResource, headers, HttpStatus.OK);
 
@@ -164,14 +166,71 @@ public class NodeController
 
                 // return unstructured node of name/value properties
                 Map nodeInfo = PropertyUtil.readProperties(node);
-                return new ResponseEntity<Object>(nodeInfo, HttpStatus.OK);
+                return new ResponseEntity<>(nodeInfo, HttpStatus.OK);
 
             }
 
         }
         catch (Exception ae) {
             ae.printStackTrace();
-            return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
+    }
+
+
+
+
+
+
+    /**
+     * Hard delete of a node and all children under it
+     *
+     * @param request
+     * @return
+     * @throws IOException
+     * @throws LoginException
+     * @throws NoSuchWorkspaceException
+     * @throws CommitFailedException
+     */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @RequestMapping(value = "/api/data/{id}", method = RequestMethod.POST)
+    public ResponseEntity<String> updateNodeById(HttpServletRequest request, HttpServletResponse response,
+                                                 @AuthenticationPrincipal Authentication currentUser_,
+                                               @PathVariable(value = "id") String id_,
+                                                 @RequestBody Map data_
+    ) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
+    {
+        Session session = null;
+        try {
+            session = authenticatedHelper.getSession(currentUser_);
+            Node node = session.getNodeByIdentifier(id_);
+
+            if( node.isCheckedOut() ){
+                session.getWorkspace().getVersionManager().checkin(node.getPath());
+                session.save();
+            }
+
+            session.getWorkspace().getVersionManager().checkout(node.getPath());
+
+            PropertyUtil.writeParametersToNode(node, data_);
+            session.save();
+
+            session.getWorkspace().getVersionManager().checkin(node.getPath());
+
+
+            return new ResponseEntity<>(id_, HttpStatus.OK);
+        }
+        catch (RepositoryException re) {
+            re.printStackTrace();
+            return new ResponseEntity<>(re.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        catch (Exception ae) {
+            return new ResponseEntity<>(id_, HttpStatus.UNAUTHORIZED);
         }
         finally {
             if (session != null) {

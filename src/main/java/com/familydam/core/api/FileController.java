@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -48,12 +47,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 import reactor.core.Reactor;
-import reactor.event.Event;
 
 import javax.imageio.ImageIO;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -180,7 +176,15 @@ public class FileController
                 InputStreamResource inputStreamResource = readFileNode(request, session, node);
                 //response.setHeader("content-length", 1000); //todo set.
 
-                return new ResponseEntity(inputStreamResource, HttpStatus.OK);
+                HttpHeaders _headers = new HttpHeaders();
+                if (node.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_MIMETYPE) != null) {
+                    _headers.setContentType( MediaType.parseMediaType(node.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_MIMETYPE).getString()) );
+                } else {
+                    _headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                }
+                _headers.set("Content-Disposition ", "attachment;filename=" +node.getName());
+
+                return new ResponseEntity(inputStreamResource, _headers, HttpStatus.OK);
 
             } else {
 
@@ -215,11 +219,12 @@ public class FileController
             if (thumbnailNode != null) {
                 imageNode = thumbnailNode;
             }else{
+                /**
                 if( rendition.equalsIgnoreCase(FamilyDAMConstants.THUMBNAIL200 )) {
                     reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(imageNode.getPath()));
                 }else if( rendition.equalsIgnoreCase(FamilyDAMConstants.WEB1024 )) {
                     reactor.notify("image." + FamilyDAMConstants.WEB1024, Event.wrap(imageNode.getPath()));
-                }
+                }**/
 
                 // TODO, this is slow, we should move this to the IMPORT process before we store the original
                 // Since we are going to load the Original image, as a fallback, We'll rotate it as needed
@@ -263,59 +268,6 @@ public class FileController
         return new ResponseEntity<Object>(bytes, headers, HttpStatus.OK);
     }
 
-
-    /**
-     * Create or replace a node
-     *
-     * @param request
-     * @return
-     * @throws IOException
-     * @throws LoginException
-     * @throws NoSuchWorkspaceException
-     * @throws CommitFailedException
-     */
-
-    private void saveBodyProperties(HttpServletRequest request, NodeUtil newNode) throws IOException
-    {
-        /**
-         * check for and process a JSON body
-         */
-        String jsonBody = IOUtils.toString(request.getInputStream());
-        if (jsonBody.length() > 0 && jsonBody.startsWith("{") && jsonBody.endsWith("}")) {
-            PropertyUtil.writeJsonToNode(newNode, jsonBody);
-        }
-    }
-
-
-    private void saveProperties(HttpServletRequest request, NodeUtil newNode) throws AccessDeniedException, CommitFailedException
-    {
-        /**
-         * process any request Parameters
-         */
-        Map<String, String[]> parameters = request.getParameterMap();
-        if (parameters.size() > 0) {
-            PropertyUtil.writeParametersToNode(newNode, parameters);
-        }
-    }
-
-
-    private void saveFile(MultipartHttpServletRequest request, NodeUtil node) throws AccessDeniedException, IOException, CommitFailedException
-    {
-        throw new RuntimeException("Not implemented exception");
-        //NodeUtil fileNode = PropertyUtil.writeFileToNode(node, request);
-
-        /**
-         * process any request Parameters
-         */
-        //saveProperties(request, fileNode);
-
-        /**
-         * check for and process a JSON body
-         * todo: is this legal, need to test
-         */
-        //saveBodyProperties(request, fileNode);
-
-    }
 
 
     /**
