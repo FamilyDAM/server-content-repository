@@ -7,14 +7,18 @@
 [dam:taggable] mixin
 - dam:tags (STRING) multiple
 
-[dam:file] mixin
-
 
 [dam:systemfolder] mixin
 [dam:contentfolder] mixin
 [dam:userfolder] mixin
 
+
+[dam:file] mixin
+
 [dam:image] mixin
 + dam:metadata (nt:unstructured)
 + dam:renditions (nt:folder)
+
+[dam:music] mixin
+
 

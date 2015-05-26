@@ -17,7 +17,7 @@
 
 package com.familydam.core;
 
-import com.familydam.core.observers.DirectoryObserver;
+import com.familydam.core.observers.ImageNodeObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
 import org.apache.jackrabbit.JcrConstants;
@@ -91,9 +91,7 @@ public class JackrabbitConfig
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
-                    .with(new DirectoryObserver("/dam:files/", JcrConstants.JCR_NAME))
-                    //.with(new BackgroundObserver(imageExifObserver, observerExecutor))
-                    //.with(new BackgroundObserver(imagePHashObserver, observerExecutor))
+                    .with(imageFileContentObserver())
                     .withAsyncIndexing();
 
             // Create repository
@@ -311,6 +309,29 @@ public class JackrabbitConfig
         }finally {
             if( session != null) session.logout();
         }
+    }
+
+
+    @Bean
+    public ImageNodeObserver homeDirectoryObserver()
+    {
+        return new ImageNodeObserver("/dam:files/", JcrConstants.JCR_NAME);
+    }
+
+
+
+    @Bean
+    public ImageNodeObserver homeDirectoryContentObserver()
+    {
+        return new ImageNodeObserver("/dam:files/", JcrConstants.JCR_CONTENT);
+    }
+
+
+
+    @Bean
+    public ImageNodeObserver imageFileContentObserver()
+    {
+        return new ImageNodeObserver("/dam:files/", FamilyDAMConstants.DAM_IMAGE);
     }
 
 

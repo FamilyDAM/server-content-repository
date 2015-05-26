@@ -19,6 +19,7 @@ package com.familydam.core.observers.reactor.images;
 
 import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.Reactor;
@@ -40,6 +41,7 @@ public class ImageEvents
 {
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
+    Session session = null;
 
     @Selector("image.added")
     public void handleImageAddedEvents(Event<String> evt)
@@ -47,13 +49,24 @@ public class ImageEvents
         String path = evt.getData();
 
         SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-        Session session = null;
         try {
-            session = repository.login(credentials);
+            if( session == null || !session.isLive() ) {
+                session = repository.login(credentials);
+            }
 
             if (path.startsWith("/")) {
                 path = path.substring(1);
             }
+
+            // Obvious child nodes we can skip
+            if( path.contains(FamilyDAMConstants.RENDITIONS)
+                    || path.contains(FamilyDAMConstants.THUMBNAIL200)
+                    || path.contains(FamilyDAMConstants.METADATA)
+                    || path.contains(JcrConstants.JCR_CONTENT) )
+            {
+                return;
+            }
+
 
             Node node = JcrUtils.getNodeIfExists(session.getRootNode(), path);
 

@@ -41,8 +41,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import reactor.core.Reactor;
-import reactor.event.Event;
 
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
@@ -79,13 +77,16 @@ public class ImportController
     
     @Autowired private ImageRenditionsService imageRenditionsService;
 
-    @Autowired private Reactor reactor;
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/info")
     public ResponseEntity<Map> info(HttpServletRequest request, HttpServletResponse response) throws LoginException, NoSuchWorkspaceException
     {
         String path = request.getParameter("path");//(String) props.get("path");
+
+        if( path == null ){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
 
         File _f = new File(path);
 
@@ -121,7 +122,7 @@ public class ImportController
         boolean fileExists = false;
         Session session = null;
         try {
-            session = authenticatedHelper.getRepositorySession(request, response);
+            session = authenticatedHelper.getSession(currentUser_);
 
             // FIND the path
             String _path = request.getParameter("path");
@@ -167,8 +168,6 @@ public class ImportController
                     // save the primary file.
                     session.save();
 
-                    // trigger any system file handling events
-                    triggerEvents(fileExists, fileNode);
 
                     // return a path to the new file, in the location header
                     MultiValueMap headers = new HttpHeaders();
@@ -325,7 +324,7 @@ public class ImportController
                     session.save();
 
                     // trigger any system file handling events
-                    triggerEvents(fileExists, fileNode);
+                    //triggerEvents(fileExists, fileNode);
 
                     // return a path to the new file, in the location header
                     MultiValueMap headers = new HttpHeaders();
@@ -357,32 +356,6 @@ public class ImportController
     }
 
 
-    /**
-     * trigger any system file handling events 
-     * @param fileExists
-     * @param fileNode
-     * @throws RepositoryException
-     */
-    private void triggerEvents(boolean fileExists, Node fileNode) throws RepositoryException
-    {
-        // Throw extra events (async) for POST-PROCESSING of the file.
-        if( fileNode.isNodeType("dam:image") ) {
-            // create thumbnail, parse exif metadata, calculate phash
-            if( fileExists ) {
-                reactor.notify("image.changed", Event.wrap(fileNode.getPath()));
-            }else{
-                reactor.notify("image.added", Event.wrap(fileNode.getPath()));
-            }
-        }else{
-            //generic file handlers
-            if( fileExists ) {
-                reactor.notify("file.changed", Event.wrap(fileNode.getPath()));
-            }else{
-                reactor.notify("file.added", Event.wrap(fileNode.getPath()));
-            }
-        }
-    }
-
 
     /**
      * apply mixins
@@ -409,6 +382,11 @@ public class ImportController
         if(MimeTypeManager.isSupportedImageMimeType(mimeType))
         {
             fileNode.addMixin("dam:image");
+        }
+
+        if(MimeTypeManager.isSupportedMusicMimeType(mimeType))
+        {
+            fileNode.addMixin("dam:music");
         }
     }
 

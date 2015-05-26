@@ -41,6 +41,5 @@ public class FamilyDAMConstants
     //headers
     public static final String XAUTHTOKEN = "X-Auth-Token";
     public static final String XAUTHTOKENPARAM = "token";
-    public static final String XAUTHTOKENREFRESH = "X-Auth-Token-Refresh";
 
 }

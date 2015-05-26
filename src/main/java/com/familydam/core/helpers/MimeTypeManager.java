@@ -36,7 +36,8 @@ public enum MimeTypeManager
     NEF("nef", "image/x-nikon-nef"),
 
     // Music, todo: find more
-    MP3("mp3", "music/"), //todo get the right mime type
+    MP3("mp3", "audio/mp3"), //todo get the right mime type
+    OGG("ogg", "audio/ogg"), //todo get the right mime type
 
     // videos, todo: find more
     MPG("mpg", "video/mpeg"), //todo get the right mime type
@@ -90,6 +91,18 @@ public enum MimeTypeManager
             if( mimeTypeManager.mimeType.equalsIgnoreCase(extension) || mimeTypeManager.extension.equalsIgnoreCase(extension) )
             {
                 return mimeTypeManager.mimeType.startsWith("image");
+            }
+        }
+        return false;
+    }
+
+    public static boolean isSupportedMusicMimeType(String extension)
+    {
+        for (MimeTypeManager mimeTypeManager : MimeTypeManager.values() )
+        {
+            if( mimeTypeManager.mimeType.equalsIgnoreCase(extension) || mimeTypeManager.extension.equalsIgnoreCase(extension) )
+            {
+                return mimeTypeManager.mimeType.startsWith("audio");
             }
         }
         return false;
