@@ -30,6 +30,8 @@ public class FamilyDAMConstants
     public static final String METADATA = "dam:metadata";
     public static final String RENDITIONS = "dam:renditions";
     public static final String DAM_IMAGE = "dam:image";
+    public static final String DAM_MUSIC = "dam:music";
+    public static final String DAM_VIDEO = "dam:video";
 
     //Node props
     public static final String CHILDREN = "children";
@@ -41,5 +43,34 @@ public class FamilyDAMConstants
     //headers
     public static final String XAUTHTOKEN = "X-Auth-Token";
     public static final String XAUTHTOKENPARAM = "token";
+
+
+
+    // simple strings
+    public static final String PATH= "path";
+    public static final String NAME= "name";
+    public static final String TYPE= "type";
+    public static final String VALUE= "value";
+    public static final String DESCRIPTION= "description";
+    public static final String TITLE = "title";
+    public static final String TRACK = "track";
+    public static final String ARTIST = "artist";
+    public static final String ALBUM = "album";
+    public static final String ALBUM_ARTIST = "album_artist";
+    public static final String ALBUM_IMAGE = "album_image";
+    public static final String ALBUM_IMAGE_MIMETYPE = "album_image_mimetype";
+    public static final String YEAR = "year";
+    public static final String GENRE = "genre";
+    public static final String GENRE_CODE = "genre_code";
+    public static final String COMMENT = "comment";
+    public static final String VERSION = "version";
+    public static final String CHAPTERS = "chapters";
+    public static final String CHAPTER_TOC = "chapters_toc";
+    public static final String COMPOSER = "composer";
+    public static final String COPYRIGHT = "copyright";
+    public static final String ENCODER = "encoder";
+    public static final String ITUNES_COMMENT = "itunes_comment";
+    public static final String ORIGINAL_ARTIST = "original_artist";
+    public static final String PUBLISHER = "publisher";
 
 }

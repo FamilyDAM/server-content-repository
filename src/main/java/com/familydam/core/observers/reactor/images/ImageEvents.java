@@ -19,6 +19,8 @@ package com.familydam.core.observers.reactor.images;
 
 import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ import javax.jcr.SimpleCredentials;
 @Consumer
 public class ImageEvents
 {
+
+    private Log log = LogFactory.getLog(this.getClass());
+
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     Session session = null;
@@ -88,8 +93,7 @@ public class ImageEvents
     }
 
 
-
-    @Selector("image.changed")
+    @Selector("file.changed")
     public void handleImageChangedEvents(Event<String> evt)
     {
         String path = evt.getData();

@@ -21,6 +21,8 @@ import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.ImagePHash;
 import com.familydam.core.services.ImageRenditionsService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.Reactor;
@@ -40,6 +42,9 @@ import java.io.InputStream;
 @Consumer
 public class PHashObserver
 {
+    private Log log = LogFactory.getLog(this.getClass());
+
+
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     @Autowired private ImageRenditionsService imageRenditionsService;
@@ -65,7 +70,7 @@ public class PHashObserver
                 if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
                 {
 
-                    System.out.println("{PHASH Image Observer} " +node.getPath());
+                    log.debug("{PHASH Image Observer} " +node.getPath());
 
                     try {
                         InputStream is = JcrUtils.readFile(node);
@@ -85,6 +90,7 @@ public class PHashObserver
 
         }catch(Exception re){
             re.printStackTrace();
+            log.error(re);
         }
         finally {
             if( session != null) {

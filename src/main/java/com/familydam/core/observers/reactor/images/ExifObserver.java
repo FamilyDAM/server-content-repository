@@ -25,6 +25,8 @@ import com.drew.metadata.Tag;
 import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.services.ImageRenditionsService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,9 @@ import java.util.Collection;
 @Consumer
 public class ExifObserver
 {
+    private Log log = LogFactory.getLog(this.getClass());
+
+
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     @Autowired private ImageRenditionsService imageRenditionsService;
@@ -71,7 +76,7 @@ public class ExifObserver
             if( node != null ){
                 if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
                 {
-                    System.out.println("{EXIF Image Observer} " +node.getPath());
+                    log.debug("{EXIF Image Observer} " +node.getPath());
 
                     // create renditions
                     if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
@@ -105,6 +110,7 @@ public class ExifObserver
 
                         }catch(ImageProcessingException |IOException ex){
                             ex.printStackTrace();
+                            log.error(ex);
                             //swallow
                         }
                     }
@@ -115,6 +121,7 @@ public class ExifObserver
 
         }catch(Exception re){
             re.printStackTrace();
+            log.error(re);
         }
         finally {
             if( session != null) {

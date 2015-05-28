@@ -17,7 +17,7 @@
 
 package com.familydam.core;
 
-import com.familydam.core.observers.ImageNodeObserver;
+import com.familydam.core.observers.FileNodeObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
 import org.apache.jackrabbit.JcrConstants;
@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
@@ -91,7 +92,7 @@ public class JackrabbitConfig
             // create JCR object
             Jcr jcr = new Jcr(getOak())
                     .with(executor)
-                    .with(imageFileContentObserver())
+                    .with(new BackgroundObserver(fileNodeObserver(), observerExecutor))
                     .withAsyncIndexing();
 
             // Create repository
@@ -313,25 +314,25 @@ public class JackrabbitConfig
 
 
     @Bean
-    public ImageNodeObserver homeDirectoryObserver()
+    public FileNodeObserver homeDirectoryObserver()
     {
-        return new ImageNodeObserver("/dam:files/", JcrConstants.JCR_NAME);
+        return new FileNodeObserver("/dam:files/", JcrConstants.JCR_NAME);
     }
 
 
 
     @Bean
-    public ImageNodeObserver homeDirectoryContentObserver()
+    public FileNodeObserver homeDirectoryContentObserver()
     {
-        return new ImageNodeObserver("/dam:files/", JcrConstants.JCR_CONTENT);
+        return new FileNodeObserver("/dam:files/", JcrConstants.JCR_CONTENT);
     }
 
 
 
     @Bean
-    public ImageNodeObserver imageFileContentObserver()
+    public FileNodeObserver fileNodeObserver()
     {
-        return new ImageNodeObserver("/dam:files/", FamilyDAMConstants.DAM_IMAGE);
+        return new FileNodeObserver("/dam:files/", JcrConstants.NT_FILE);
     }
 
 

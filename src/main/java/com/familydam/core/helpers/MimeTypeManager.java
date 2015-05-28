@@ -108,6 +108,18 @@ public enum MimeTypeManager
         return false;
     }
 
+    public static boolean isSupportedVideoMimeType(String extension)
+    {
+        for (MimeTypeManager mimeTypeManager : MimeTypeManager.values() )
+        {
+            if( mimeTypeManager.mimeType.equalsIgnoreCase(extension) || mimeTypeManager.extension.equalsIgnoreCase(extension) )
+            {
+                return mimeTypeManager.mimeType.startsWith("video");
+            }
+        }
+        return false;
+    }
+
     public static String getMimeType(String pathOrExt)
     {
         int fileSep = pathOrExt.lastIndexOf(".");

@@ -20,6 +20,8 @@ package com.familydam.core.observers.reactor.images;
 import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.services.ImageRenditionsService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ import java.io.IOException;
 @Consumer
 public class ThumbnailObserver
 {
+    private Log log = LogFactory.getLog(this.getClass());
+
+
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     @Autowired private ImageRenditionsService imageRenditionsService;
@@ -66,7 +71,7 @@ public class ThumbnailObserver
             if( node != null ){
                 if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
                 {
-                    System.out.println("{Rendition Image Observer} " +node.getPath());
+                    log.debug("{Rendition Image Observer} " +node.getPath());
 
                     // create renditions
                     if( node.isNodeType("dam:image") ) {
@@ -95,6 +100,7 @@ public class ThumbnailObserver
 
         }catch(Exception re){
             re.printStackTrace();
+            log.error(re);
         }
         finally {
             if( session != null) {
@@ -125,7 +131,7 @@ public class ThumbnailObserver
             if( node != null ){
                 if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
                 {
-                    System.out.println("{Thumbnail/Rendition Image Observer} " +node.getPath());
+                    log.debug("{Thumbnail/Rendition Image Observer} " +node.getPath());
 
                     // create renditions
                     if( node.isNodeType("dam:image") ) {
@@ -146,6 +152,7 @@ public class ThumbnailObserver
 
         }catch(Exception re){
             re.printStackTrace();
+            log.error(re);
         }
         finally {
             if( session != null) {

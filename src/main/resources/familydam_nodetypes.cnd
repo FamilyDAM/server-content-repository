@@ -19,6 +19,11 @@
 + dam:metadata (nt:unstructured)
 + dam:renditions (nt:folder)
 
-[dam:music] mixin
 
+[dam:music] mixin
++ dam:metadata (nt:unstructured)
+
+
+[dam:video] mixin
++ dam:metadata (nt:unstructured)
 

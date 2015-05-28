@@ -27,6 +27,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.util.Text;
 import org.junit.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -44,7 +45,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.AuthenticationException;
@@ -158,12 +158,11 @@ public class ImportController
                         fileExists = true;
                     }
 
+                    _fileName = cleanFileName(_fileName);
+
                     // Upload the FILE
                     Node fileNode = JcrUtils.putFile(copyToDir, _fileName, mimeType, new BufferedInputStream(_file));
                     //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
-
-                    // apply mixins
-                    applyMixins(mimeType, fileNode);
 
                     // save the primary file.
                     session.save();
@@ -181,8 +180,23 @@ public class ImportController
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         }catch(Exception ex){
+            ex.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+
+    /**
+     * JCR node names have a certain character set, which is actually very broad and includes
+     * almost all of unicode minus some special characters such as /, [, ], |, :
+     * and * (used to build paths, address same-name siblings etc. in JCR), and it
+     * cannot be "." or ".." (obviously).
+     * @param fileName_
+     * @return
+     */
+    private String cleanFileName(String fileName_)
+    {
+        return Text.escapeIllegalJcrChars(fileName_);
     }
 
 
@@ -317,8 +331,6 @@ public class ImportController
                     Node fileNode = JcrUtils.putFile(copyToDir, fileName, mimeType, new BufferedInputStream(new FileInputStream(file)) );
                     //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
 
-                    // apply mixins
-                    applyMixins(mimeType, fileNode);
 
                     // save the primary file.
                     session.save();
@@ -329,11 +341,11 @@ public class ImportController
                     // return a path to the new file, in the location header
                     MultiValueMap headers = new HttpHeaders();
                     headers.add("location", fileNode.getPath().replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "/~/")); // return
-                    return new ResponseEntity<Object>(headers, HttpStatus.CREATED);
+                    return new ResponseEntity<>(headers, HttpStatus.CREATED);
                 }
                 catch (Exception ex) {
                     ex.printStackTrace();
-                    return new ResponseEntity<Object>(ex, HttpStatus.INTERNAL_SERVER_ERROR);
+                    return new ResponseEntity<>(ex, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             } else if (file.isDirectory()) {
                 //todo recursively copy everything in the dir.
@@ -356,38 +368,5 @@ public class ImportController
     }
 
 
-
-    /**
-     * apply mixins
-     * @param mimeType
-     * @param fileNode
-     * @throws RepositoryException
-     */
-    private void applyMixins(String mimeType, Node fileNode) throws RepositoryException
-    {
-        //first assign the right mixins
-        // generic mixin for all user uploaded files (so we can separate users files from system generated revisions
-        fileNode.addMixin("dam:file");
-        // supports String[] TAGS
-        fileNode.addMixin("dam:taggable");
-        // catch all to allow any property
-        fileNode.addMixin("dam:extensible");
-        // make all files versionable
-        fileNode.addMixin(JcrConstants.MIX_VERSIONABLE);
-        // make all files referencable
-        fileNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
-
-
-        // Check the mime type to decide if it's more then a generic file
-        if(MimeTypeManager.isSupportedImageMimeType(mimeType))
-        {
-            fileNode.addMixin("dam:image");
-        }
-
-        if(MimeTypeManager.isSupportedMusicMimeType(mimeType))
-        {
-            fileNode.addMixin("dam:music");
-        }
-    }
 
 }
