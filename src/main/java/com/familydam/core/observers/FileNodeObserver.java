@@ -18,7 +18,11 @@
 package com.familydam.core.observers;
 
 import com.familydam.core.FamilyDAM;
+import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.MimeTypeManager;
+import com.familydam.core.services.JobQueueServices;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.observation.NodeObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -47,12 +51,16 @@ import java.util.Set;
 @Lazy
 public class FileNodeObserver extends NodeObserver implements Closeable
 {
+    private Log log = LogFactory.getLog(this.getClass());
+
 
     @Autowired private Reactor reactor;
     @Autowired private ApplicationContext context;
+    @Autowired private JobQueueServices jobQueueServices;
+
     private Repository repository;
     private Credentials credentials;
-    private Session session;
+    private Session session = null;
 
     String propName = "";
 
@@ -78,11 +86,24 @@ public class FileNodeObserver extends NodeObserver implements Closeable
             repository = context.getBean(Repository.class);
         }
 
-        //System.out.println("{dir observer} added");
+        try {
+            Session session = repository.login(credentials);
 
-        // apply mixins
-        this.applyMixins(path);
+            Node node = session.getNode(path);
 
+            // System.out.println("{dir observer} added");
+            // Apply mixins
+            if( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE) ) {
+                this.applyMixins(path);
+
+                // Trigger the real event system
+                reactor.notify("file.added", Event.wrap(path));
+            }
+
+
+        }catch(Exception ex){
+            log.error(ex);
+        }
 
     }
 
@@ -93,8 +114,24 @@ public class FileNodeObserver extends NodeObserver implements Closeable
         if( repository == null ){
             repository = context.getBean(Repository.class);
         }
-        //System.out.println("{dir observer} changed");
-        reactor.notify("file.changed", Event.wrap(path));
+
+        try {
+            Session session = repository.login(credentials);
+
+
+            Node node = session.getNode(path);
+
+            //System.out.println("{dir observer} added");
+            // apply mixins
+            if( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE) ) {
+                // trigger the real event system
+                reactor.notify("file.changed", Event.wrap(path));
+            }
+
+
+        }catch(Exception ex){
+            log.debug(ex);
+        }
 
     }
 
@@ -105,6 +142,29 @@ public class FileNodeObserver extends NodeObserver implements Closeable
         if( repository == null ){
             repository = context.getBean(Repository.class);
         }
+
+        try {
+            if (session == null || !session.isLive()) {
+                session = repository.login(credentials);
+            }
+
+            Node node = session.getNode(path);
+
+            //System.out.println("{dir observer} added");
+            // apply mixins
+            if( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE) ) {
+
+                jobQueueServices.deleteAllJobs(session, node);
+
+                // trigger the real event system
+                reactor.notify("file.changed", Event.wrap(path));
+            }
+
+
+        }catch(Exception ex){
+            log.debug(ex);
+        }
+
         //System.out.println("{dir observer} deleted");
         reactor.notify("file.deleted", Event.wrap(path));
     }
@@ -133,6 +193,14 @@ public class FileNodeObserver extends NodeObserver implements Closeable
 
             if( fileNode.isNodeType(JcrConstants.NT_FILE) ) {
 
+                // Obvious child nodes we can skip
+                if (path.contains(FamilyDAMConstants.RENDITIONS)
+                        || path.contains(FamilyDAMConstants.THUMBNAIL200)
+                        || path.contains(FamilyDAMConstants.METADATA)
+                        || path.contains(JcrConstants.JCR_CONTENT)) {
+                    return;
+                }
+
                 String mimeType = fileNode.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_MIMETYPE).getString();
 
                 //first assign the right mixins
@@ -151,26 +219,19 @@ public class FileNodeObserver extends NodeObserver implements Closeable
                 // Check the mime type to decide if it's more then a generic file
                 if (MimeTypeManager.isSupportedImageMimeType(mimeType)) {
                     fileNode.addMixin("dam:image");
-
-                    //System.out.println("{dir observer | " +propName +"} added | " + path);
-                    reactor.notify("image.added", Event.wrap(path));
                 }
 
                 if (MimeTypeManager.isSupportedMusicMimeType(mimeType)) {
                     fileNode.addMixin("dam:music");
-
-                    //System.out.println("{dir observer | " +propName +"} added | " + path);
-                    reactor.notify("music.added", Event.wrap(path));
                 }
 
                 if (MimeTypeManager.isSupportedVideoMimeType(mimeType)) {
                     fileNode.addMixin("dam:video");
-
-                    //System.out.println("{dir observer | " +propName +"} added | " + path);
-                    reactor.notify("video.added", Event.wrap(path));
                 }
 
                 session.save();
+
+
             }
         }catch(RepositoryException re){
             re.printStackTrace();

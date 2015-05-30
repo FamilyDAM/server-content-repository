@@ -19,10 +19,10 @@ package com.familydam.core.observers.reactor.images;
 
 import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.Reactor;
 import reactor.event.Event;
@@ -34,6 +34,9 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by mnimer on 12/23/14.
@@ -46,47 +49,45 @@ public class ImageEvents
 
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
+    @Autowired private JobQueueServices jobQueueServices;
     Session session = null;
 
-    @Selector("image.added")
+    @Selector("file.added")
     public void handleImageAddedEvents(Event<String> evt)
     {
         String path = evt.getData();
 
         SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         try {
-            if( session == null || !session.isLive() ) {
-                session = repository.login(credentials);
-            }
+            session = repository.login(credentials);
 
-            if (path.startsWith("/")) {
-                path = path.substring(1);
-            }
 
-            // Obvious child nodes we can skip
-            if( path.contains(FamilyDAMConstants.RENDITIONS)
-                    || path.contains(FamilyDAMConstants.THUMBNAIL200)
-                    || path.contains(FamilyDAMConstants.METADATA)
-                    || path.contains(JcrConstants.JCR_CONTENT) )
-            {
+            if (!isRootPath(path)) {
                 return;
             }
 
 
-            Node node = JcrUtils.getNodeIfExists(session.getRootNode(), path);
+            Node node = session.getNode(path);
 
             if (node != null) {
                 if (node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
-                    // create a 200x200 thumbnail
-                    reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(node.getPath()));
 
+                    createJobs(node, session);
+
+
+                    // save the jobs
+                    session.save();
+
+                    // create a 200x200 thumbnail
+                    //reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(node.getPath()));
                     // parse the EXIF metadata
-                    reactor.notify("image.metadata", Event.wrap(node.getPath()));
+                    //reactor.notify("image.metadata", Event.wrap(node.getPath()));
                     // calculate the PHASH of the image
-                    reactor.notify("image.phash", Event.wrap(node.getPath()));
+                    //reactor.notify("image.phash", Event.wrap(node.getPath()));
                 }
             }
         }catch(RepositoryException re){
+            re.printStackTrace();
             reactor.notify("error", Event.wrap(re.getMessage()));
         }
 
@@ -103,26 +104,28 @@ public class ImageEvents
         try {
             session = repository.login(credentials);
 
-            if (path.startsWith("/")) {
-                path = path.substring(1);
+
+            if (!isRootPath(path)) {
+                return;
             }
 
-            Node node = JcrUtils.getNodeIfExists(session.getRootNode(), path);
+
+            Node node = session.getNode(path);
 
             if (node != null) {
                 if (node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
-                    // update the 200x200 thumbnail
-                    reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(node.getPath()));
-                    // parse the EXIF metadata
-                    reactor.notify("image.metadata", Event.wrap(node.getPath()));
-                    // calculate the PHASH of the image
-                    reactor.notify("image.phash", Event.wrap(node.getPath()));
+                    createJobs(node, session);
+                    // save the jobs
+                    session.save();
                 }
             }
         }catch(RepositoryException re){
             reactor.notify("error", Event.wrap(re.getMessage()));
         }
     }
+
+
+
 
 
 
@@ -138,5 +141,38 @@ public class ImageEvents
     public void handleImageDeletedEvents(Event<String> evt)
     {
         //do nothing for now
+    }
+
+
+
+
+    private boolean isRootPath(String path)
+    {
+        // Obvious child nodes we can skip
+        if( path.contains(FamilyDAMConstants.RENDITIONS)
+                || path.contains(FamilyDAMConstants.THUMBNAIL200)
+                || path.contains(FamilyDAMConstants.METADATA)
+                || path.contains(JcrConstants.JCR_CONTENT) )
+        {
+            return false;
+        }
+        return true;
+    }
+
+
+
+
+    private void createJobs(Node node, Session session_) throws RepositoryException
+    {
+        // create a thumbnail
+        Map props = new HashMap();
+        props.put("width", 200);
+        props.put("height", 200);
+        jobQueueServices.addJob(session_, node, "image.thumbnail", props);
+        // parse the EXIF metadata
+        jobQueueServices.addJob(session_, node, "image.metadata", Collections.EMPTY_MAP);
+        // calculate the phash of the image
+        jobQueueServices.addJob(session_, node, "image.phash", Collections.EMPTY_MAP);
+
     }
 }

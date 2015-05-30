@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,6 +46,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -159,6 +161,15 @@ public class JackrabbitConfig
 
 
 
+
+    @Bean
+    public FileNodeObserver fileNodeObserver()
+    {
+        return new FileNodeObserver("/dam:files/", JcrConstants.NT_FILE);
+    }
+
+
+
     /****
     @Bean
     public SecurityProvider securityProvider()
@@ -248,20 +259,9 @@ public class JackrabbitConfig
             session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
 
             Node _rootNode = session.getRootNode();
-            Node _filesNode = JcrUtils.getOrAddNode(_rootNode, "dam:files", JcrConstants.NT_FOLDER);
-            Node _documentsFolderNode = JcrUtils.getOrAddFolder(_filesNode, "documents");
-            _documentsFolderNode.addMixin("mix:created");
-            _documentsFolderNode.addMixin("dam:contentfolder");
-            _documentsFolderNode.addMixin("dam:extensible");
-            _documentsFolderNode.setProperty(JcrConstants.JCR_NAME, "Documents");
-            _documentsFolderNode.setProperty("order", "1");
-
-            Node _cloudNode = JcrUtils.getOrAddFolder(_filesNode, "cloud");
-            _cloudNode.addMixin("mix:created");
-            _cloudNode.addMixin("dam:contentfolder");
-            _cloudNode.addMixin("dam:extensible");
-            _cloudNode.setProperty(JcrConstants.JCR_NAME, "Cloud");
-            _cloudNode.setProperty("order", "2");
+            Node _systemNode = createDAMSystemFolder(_rootNode, session);
+            Node _filesNode = createDAMFilesFolder(_rootNode);
+            Node _cloudNode = createDAMCloudFolder(_rootNode);
 
             session.save();
         }catch(Exception ex){
@@ -270,6 +270,63 @@ public class JackrabbitConfig
             if( session != null) session.logout();
         }
     }
+
+
+
+
+    @NotNull private Node createDAMSystemFolder(Node _rootNode, Session session) throws RepositoryException
+    {
+        //Node _tmpNode = JcrUtils.getNodeIfExists(_rootNode, FamilyDAMConstants.SYSTEM_ROOT);
+        //_tmpNode.remove();
+        //session.save();
+
+        Node _filesNode = JcrUtils.getOrAddNode(_rootNode, FamilyDAMConstants.SYSTEM_ROOT, JcrConstants.NT_UNSTRUCTURED);
+
+        Node _assetsFolderNode = JcrUtils.getOrAddNode(_filesNode, "assets", JcrConstants.NT_UNSTRUCTURED);
+        _assetsFolderNode.addMixin("mix:created");
+        _assetsFolderNode.addMixin("dam:systemfolder");
+        _assetsFolderNode.addMixin("dam:extensible");
+        _assetsFolderNode.setProperty(JcrConstants.JCR_NAME, "assets");
+
+        Node _jobQueueFolderNode = JcrUtils.getOrAddNode(_filesNode, "job-queue", JcrConstants.NT_UNSTRUCTURED);
+        _jobQueueFolderNode.addMixin("mix:created");
+        _jobQueueFolderNode.addMixin("dam:systemfolder");
+        _jobQueueFolderNode.addMixin("dam:extensible");
+        _jobQueueFolderNode.setProperty(JcrConstants.JCR_NAME, "job-queue");
+        return _filesNode;
+    }
+
+
+    @NotNull private Node createDAMFilesFolder(Node _rootNode) throws RepositoryException
+    {
+        Node _filesNode = JcrUtils.getOrAddNode(_rootNode, "dam:files", JcrConstants.NT_FOLDER);
+        Node _documentsFolderNode = JcrUtils.getOrAddFolder(_filesNode, "documents");
+        _documentsFolderNode.addMixin("mix:created");
+        _documentsFolderNode.addMixin("dam:contentfolder");
+        _documentsFolderNode.addMixin("dam:extensible");
+        _documentsFolderNode.setProperty(JcrConstants.JCR_NAME, "Documents");
+        _documentsFolderNode.setProperty("order", "1");
+        return _filesNode;
+    }
+
+
+    @NotNull private Node createDAMCloudFolder(Node _rootNode) throws RepositoryException
+    {
+        Node _filesNode = JcrUtils.getOrAddNode(_rootNode, "dam:cloud", JcrConstants.NT_FOLDER);
+        Node _documentsFolderNode = JcrUtils.getOrAddFolder(_filesNode, "cloud");
+        _documentsFolderNode.addMixin("mix:created");
+        _documentsFolderNode.addMixin("dam:contentfolder");
+        _documentsFolderNode.addMixin("dam:extensible");
+        _documentsFolderNode.setProperty(JcrConstants.JCR_NAME, "Cloud");
+        _documentsFolderNode.setProperty("order", "2");
+        return _filesNode;
+    }
+
+
+
+
+
+
 
 
 
@@ -283,6 +340,8 @@ public class JackrabbitConfig
 
             QueryManager queryManager = session.getWorkspace().getQueryManager();
             //Query query = queryManager.createQuery(sql, "JCR-SQL2");
+
+            // find all DAM Content Folders, we'll add a user folder to each one
             Query query = queryManager.createQuery("SELECT * FROM [dam:contentfolder] AS s", "sql");
 
             // Execute the query and get the results ...
@@ -313,27 +372,7 @@ public class JackrabbitConfig
     }
 
 
-    @Bean
-    public FileNodeObserver homeDirectoryObserver()
-    {
-        return new FileNodeObserver("/dam:files/", JcrConstants.JCR_NAME);
-    }
 
-
-
-    @Bean
-    public FileNodeObserver homeDirectoryContentObserver()
-    {
-        return new FileNodeObserver("/dam:files/", JcrConstants.JCR_CONTENT);
-    }
-
-
-
-    @Bean
-    public FileNodeObserver fileNodeObserver()
-    {
-        return new FileNodeObserver("/dam:files/", JcrConstants.NT_FILE);
-    }
 
 
 

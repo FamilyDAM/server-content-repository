@@ -24,6 +24,10 @@ public class FamilyDAMConstants
 {
     // paths
     public static final String CONTENT_ROOT = "dam:files";
+    public static final String CLOUD_ROOT = "dam:cloud";
+    public static final String SYSTEM_ROOT = "dam:system";
+    public static final String SYSTEM_JOBQUEUE_FOLDER = "job-queue";
+    public static final String SYSTEM_ASSETS_FOLDER = "assets";
     public static final String EMAIL_ROOT = "dam:email";
     public static final String WEB_ROOT = "dam:web";
     public static final String KEYWORDS = "dam:tags";
@@ -35,6 +39,17 @@ public class FamilyDAMConstants
 
     //Node props
     public static final String CHILDREN = "children";
+
+    //Events
+    public static final String EVENT_IMAGE_METADATA = "image.metadata";
+    public static final String EVENT_IMAGE_PHASH = "image.phash";
+    public static final String EVENT_IMAGE_THUMBNAIL = "image.thumbnail";
+    public static final String EVENT_MP3_METADATA = "mp3.metadata";
+
+    //status
+    public static final String WAITING = "WAITING";
+    public static final String PROCESSING = "PROCESSING";
+    public static final String FAILED = "FAILED";
 
     //
     public static final String THUMBNAIL200 = "thumbnail.200";

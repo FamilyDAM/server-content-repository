@@ -88,11 +88,11 @@ public class TokenAuthFilter implements Filter
             String token = null;
 
             if (_tokenHeader.isPresent() ) {
-                log.debug("Trying to authenticate user by X-Auth-Token method. Token: " + token);
                 token = (String)_tokenHeader.get();
+                log.trace("Trying to authenticate user by X-Auth-Token method. Token: " + token);
             }else if( _tokenUrlParam.isPresent() ){
-                log.debug("Trying to authenticate user by token url parameter. Token: " + token);
                 token = (String)_tokenUrlParam.get();
+                log.trace("Trying to authenticate user by token url parameter. Token: " + token);
             }
 
 

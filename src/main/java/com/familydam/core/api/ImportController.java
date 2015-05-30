@@ -120,9 +120,8 @@ public class ImportController
             @AuthenticationPrincipal Authentication currentUser_) throws LoginException, NoSuchWorkspaceException, IOException, ServletException
     {
         boolean fileExists = false;
-        Session session = null;
         try {
-            session = authenticatedHelper.getSession(currentUser_);
+            Session session = authenticatedHelper.getSession(currentUser_);
 
             // FIND the path
             String _path = request.getParameter("path");
