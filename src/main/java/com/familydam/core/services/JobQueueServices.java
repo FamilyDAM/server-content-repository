@@ -49,7 +49,7 @@ public class JobQueueServices
     SimpleDateFormat df = new SimpleDateFormat("YYYYMMDD");
 
 
-    public void addJob(Session session, Node node, String event, Map props)
+    public void addJob(Session session, Node node, String event, Map props, Long weight)
     {
         String dateStamp = df.format(new Date());
 
@@ -60,9 +60,10 @@ public class JobQueueServices
             Node job1 = JcrUtils.getOrAddNode(jobQueueNode, job1Id, JcrConstants.NT_UNSTRUCTURED);
             job1.addMixin("mix:created");
             job1.addMixin("dam:extensible");
-            job1.setProperty("node", node);
+            //job1.setProperty("node", node);
             job1.setProperty("nodeId", node.getIdentifier());
             job1.setProperty("event", event);
+            job1.setProperty("weight", weight);
             job1.setProperty("status", FamilyDAMConstants.WAITING);
 
 
@@ -106,9 +107,13 @@ public class JobQueueServices
                         @Override public boolean test(Node node)
                         {
                             try {
-                                return node.getProperty("event").getString().equals(event_) && node.getProperty("status").getString().equals(status_);
+                                if (event_ != null) {
+                                    return node.getProperty("event").getString().equals(event_) && node.getProperty("status").getString().equals(status_);
+                                } else {
+                                    return node.getProperty("status").getString().equals(status_);
+                                }
                             }
-                            catch(RepositoryException re){
+                            catch (RepositoryException re) {
                                 log.error(re);
                                 return false;
                             }

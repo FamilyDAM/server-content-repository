@@ -123,7 +123,7 @@ public class FileNodeObserver extends NodeObserver implements Closeable
 
             //System.out.println("{dir observer} added");
             // apply mixins
-            if( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE) ) {
+            if( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE) && changed.contains("jcr:data") ) {
                 // trigger the real event system
                 reactor.notify("file.changed", Event.wrap(path));
             }
@@ -157,7 +157,7 @@ public class FileNodeObserver extends NodeObserver implements Closeable
                 jobQueueServices.deleteAllJobs(session, node);
 
                 // trigger the real event system
-                reactor.notify("file.changed", Event.wrap(path));
+                reactor.notify("file.deleted", Event.wrap(path));
             }
 
 

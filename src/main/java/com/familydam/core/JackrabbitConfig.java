@@ -128,14 +128,8 @@ public class JackrabbitConfig
     private Oak getOak()
     {
         try {
-            File repoDir = new File("./familydam-repo");
-            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
 
-            FileBlobStore fileBlobStore = new FileBlobStore(repoDir.getAbsolutePath());
-            FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
-            //int maxFileSize = 1024 * 1024; //1gig
-            //FileStore source = new FileStore(repoDir, maxFileSize, false);
-            NodeStore segmentNodeStore = new SegmentNodeStore(source);
+            NodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore()).create();
 
             Oak oak = new Oak(segmentNodeStore)
                     .with("familyDAM")
@@ -146,8 +140,7 @@ public class JackrabbitConfig
                             //.with(new OpenSecurityProvider())
                             //.with(new PropertyIndexHook())     // simple indexing support
                             //.with(new PropertyIndexProvider()) // search support for the indexes
-                    .with(new CommitDAMHook())
-                    .withAsyncIndexing();
+                    .with(new CommitDAMHook());
 
 
             return oak;
@@ -159,6 +152,31 @@ public class JackrabbitConfig
     }
 
 
+
+    private FileStore fileStore() throws IOException
+    {
+        File repoDir = new File("./familydam-repo");
+        /**
+         ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
+         FileDataStore fileDataStore = new FileDataStore();
+         fileDataStore.setMinRecordLength(100);
+         fileDataStore.setPath(repoDir.getAbsolutePath());
+         DataStoreBlobStore dataStoreBlobStore = new DataStoreBlobStore(fileDataStore);
+         **/
+
+
+        FileBlobStore fileBlobStore = new FileBlobStore(repoDir.getAbsolutePath());
+        //int maxFileSize = (1024 * 1024) * 10; //1gig
+        //FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
+        //FileStore source = new FileStore(repoDir, maxFileSize, false);
+
+        FileStore source = FileStore
+                .newFileStore(repoDir)
+                .withBlobStore(fileBlobStore)
+                .create();
+
+        return source;
+    }
 
 
 
@@ -300,12 +318,11 @@ public class JackrabbitConfig
     @NotNull private Node createDAMFilesFolder(Node _rootNode) throws RepositoryException
     {
         Node _filesNode = JcrUtils.getOrAddNode(_rootNode, "dam:files", JcrConstants.NT_FOLDER);
-        Node _documentsFolderNode = JcrUtils.getOrAddFolder(_filesNode, "documents");
-        _documentsFolderNode.addMixin("mix:created");
-        _documentsFolderNode.addMixin("dam:contentfolder");
-        _documentsFolderNode.addMixin("dam:extensible");
-        _documentsFolderNode.setProperty(JcrConstants.JCR_NAME, "Documents");
-        _documentsFolderNode.setProperty("order", "1");
+        _filesNode.addMixin("mix:created");
+        _filesNode.addMixin("dam:contentfolder");
+        _filesNode.addMixin("dam:extensible");
+        _filesNode.setProperty(JcrConstants.JCR_NAME, "Files");
+        _filesNode.setProperty("order", "1");
         return _filesNode;
     }
 
@@ -313,12 +330,11 @@ public class JackrabbitConfig
     @NotNull private Node createDAMCloudFolder(Node _rootNode) throws RepositoryException
     {
         Node _filesNode = JcrUtils.getOrAddNode(_rootNode, "dam:cloud", JcrConstants.NT_FOLDER);
-        Node _documentsFolderNode = JcrUtils.getOrAddFolder(_filesNode, "cloud");
-        _documentsFolderNode.addMixin("mix:created");
-        _documentsFolderNode.addMixin("dam:contentfolder");
-        _documentsFolderNode.addMixin("dam:extensible");
-        _documentsFolderNode.setProperty(JcrConstants.JCR_NAME, "Cloud");
-        _documentsFolderNode.setProperty("order", "2");
+        _filesNode.addMixin("mix:created");
+        _filesNode.addMixin("dam:contentfolder");
+        _filesNode.addMixin("dam:extensible");
+        _filesNode.setProperty(JcrConstants.JCR_NAME, "Cloud");
+        _filesNode.setProperty("order", "2");
         return _filesNode;
     }
 
@@ -332,7 +348,7 @@ public class JackrabbitConfig
 
     private void registerCustomUsers(Repository repository)
     {
-        String[] users = new String[]{"admin", "animer"};
+        String[] users = new String[]{"admin", "angie", "kayden", "hailey"};
 
         Session session = null;
         try {
@@ -355,7 +371,7 @@ public class JackrabbitConfig
                     for (String user : users) {
                         Node _node = JcrUtils.getOrAddFolder(node, user);
                         _node.addMixin("mix:created");
-                        _node.addMixin("dam:systemfolder");
+                        _node.addMixin("dam:userfolder");
                         _node.addMixin("dam:extensible");
                         _node.setProperty(JcrConstants.JCR_NAME, user);
                         session.save();

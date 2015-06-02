@@ -30,11 +30,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import reactor.core.Reactor;
 import reactor.spring.context.annotation.Consumer;
 
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -47,7 +45,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * Created by mnimer on 5/26/15.
@@ -62,108 +59,13 @@ public class Mp3Observer
     @Autowired private ImageRenditionsService imageRenditionsService;
     @Autowired private JobQueueServices jobQueueServices;
 
-    private int jobsPerIteration = 4;
-
     SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
     Session session = null;
 
 
 
 
-    @Scheduled(fixedRate = 10000)
-    public void checkForJobs()
-    {
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-        try{
-            final Session _session = repository.login(credentials);;
-
-            Stream<Node> events = jobQueueServices.getEventJobs(_session, FamilyDAMConstants.EVENT_MP3_METADATA, FamilyDAMConstants.WAITING);
-            events
-                    .limit(jobsPerIteration)
-                    .forEach(new java.util.function.Consumer<Node>()
-                    {
-                        @Override public void accept(Node node)
-                        {
-
-                            try {
-                                Node _node = node.getProperty("node").getNode();
-                                jobQueueServices.startJob(_session, node);
-                                execute(_session, _node);
-                                jobQueueServices.deleteJob(_session, _node, FamilyDAMConstants.EVENT_MP3_METADATA);
-                            }catch(InvalidItemStateException iex){
-                                iex.printStackTrace();
-                                log.error(iex);
-                            }
-                            catch (javax.jcr.RepositoryException | IOException | InterruptedException ex) {
-                                ex.printStackTrace();
-                                jobQueueServices.failJob(_session, node, ex);
-                                log.error(ex);
-                                jobQueueServices.failJob(_session, node, ex);
-                            }
-
-                        }
-                    });
-
-        }catch( RepositoryException re){
-            log.error(re);
-        }
-    }
-
-
-
-    /***
-    //@ReplyTo("reply.topic")
-    @Selector("file.added")
-    public void handleMusicAddedMetadata(Event<String> evt)
-    {
-        processEvent(evt);
-    }
-
-    @Selector("file.changed")
-    public void handleMusicChangedMetadata(Event<String> evt)
-    {
-        processEvent(evt);
-    }
-
-    public void processEvent(Event<String> evt)
-    {
-        String path = evt.getData();
-
-
-        try{
-            if( session == null || !session.isLive() ) {
-                session = repository.login(credentials);
-            }
-
-            Node node = session.getNode(path);
-            if( node != null ){
-                //double check type
-                if( node.isNodeType(FamilyDAMConstants.DAM_MUSIC))
-                {
-                    log.debug("{MP3 Observer} " + node.getPath());
-
-                    Node _node = extractMetadata(node);
-
-                    session.save();
-                }
-            }
-
-        }catch(Exception re){
-            re.printStackTrace();
-            log.error(re);
-        }
-        finally {
-            if( session != null) {
-                session.logout();
-            }
-        }
-    }
-    **/
-
-
-
-
-    private Node execute(Session session, Node node) throws RepositoryException, IOException, InterruptedException
+    public Node execute(Session session, Node node) throws RepositoryException, IOException, InterruptedException
     {
         log.debug("{mp3.metadata Observer} " +node.getPath());
 

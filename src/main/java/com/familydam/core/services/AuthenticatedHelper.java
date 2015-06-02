@@ -126,6 +126,9 @@ public class AuthenticatedHelper
     public Session getSession(Credentials credentials) throws AuthenticationException
     {
         try {
+            if( credentials instanceof TokenCredentials) {
+                ((TokenCredentials) credentials).setAttribute("oak.refresh-interval", "2000");
+            }
             Session session = repository.login(credentials, null);
             return session;
         }catch (Exception ex){

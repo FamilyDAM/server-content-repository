@@ -73,17 +73,6 @@ public class ImageEvents
                 if (node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
 
                     createJobs(node, session);
-
-
-                    // save the jobs
-                    session.save();
-
-                    // create a 200x200 thumbnail
-                    //reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(node.getPath()));
-                    // parse the EXIF metadata
-                    //reactor.notify("image.metadata", Event.wrap(node.getPath()));
-                    // calculate the PHASH of the image
-                    //reactor.notify("image.phash", Event.wrap(node.getPath()));
                 }
             }
         }catch(RepositoryException re){
@@ -168,11 +157,15 @@ public class ImageEvents
         Map props = new HashMap();
         props.put("width", 200);
         props.put("height", 200);
-        jobQueueServices.addJob(session_, node, "image.thumbnail", props);
-        // parse the EXIF metadata
-        jobQueueServices.addJob(session_, node, "image.metadata", Collections.EMPTY_MAP);
-        // calculate the phash of the image
-        jobQueueServices.addJob(session_, node, "image.phash", Collections.EMPTY_MAP);
+        jobQueueServices.addJob(session_, node, "image.thumbnail", props, 100l);
+        session.save();
 
+        // parse the EXIF metadata
+        jobQueueServices.addJob(session_, node, "image.metadata", Collections.EMPTY_MAP, 90l);
+        session.save();
+
+        // calculate the phash of the image
+        jobQueueServices.addJob(session_, node, "image.phash", Collections.EMPTY_MAP, 80l);
+        session.save();
     }
 }

@@ -72,7 +72,7 @@ public class MusicEvents
             if (node != null) {
                 if (node.isNodeType(FamilyDAMConstants.DAM_MUSIC)) {
 
-                    jobQueueServices.addJob(session, node, "mp3.metadata", Collections.EMPTY_MAP);
+                    jobQueueServices.addJob(session, node, "mp3.metadata", Collections.EMPTY_MAP, 100l);
 
                     // save the jobs
                     session.save();
@@ -112,7 +112,7 @@ public class MusicEvents
             if (node != null) {
                 if (node.isNodeType(FamilyDAMConstants.DAM_MUSIC)) {
 
-                    jobQueueServices.addJob(session, node, "mp3.metadata", Collections.EMPTY_MAP);
+                    jobQueueServices.addJob(session, node, "mp3.metadata", Collections.EMPTY_MAP, 100l);
                     // save the jobs
                     session.save();
                 }
