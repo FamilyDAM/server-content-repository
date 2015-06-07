@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015  Mike Nimer & 11:58 Labs
+ */
+
 package com.familydam.core;
 
 import org.junit.Test;
