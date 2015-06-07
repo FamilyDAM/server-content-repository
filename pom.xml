@@ -211,7 +211,7 @@
 
 
 	<build>
-        <finalName>FamilyDAM-${project.version}</finalName>
+        <finalName>FamilyDAM</finalName>
 
 
 		<plugins>
