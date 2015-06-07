@@ -17,9 +17,9 @@
 
 package com.familydam.core.observers;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.MimeTypeManager;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,12 +33,11 @@ import org.springframework.context.annotation.Lazy;
 import reactor.core.Reactor;
 import reactor.event.Event;
 
-import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
+import javax.security.sasl.AuthenticationException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
@@ -57,9 +56,9 @@ public class FileNodeObserver extends NodeObserver implements Closeable
     @Autowired private Reactor reactor;
     @Autowired private ApplicationContext context;
     @Autowired private JobQueueServices jobQueueServices;
+    private AuthenticatedHelper authenticatedHelper;
 
     private Repository repository;
-    private Credentials credentials;
     private Session session = null;
 
     String propName = "";
@@ -69,11 +68,12 @@ public class FileNodeObserver extends NodeObserver implements Closeable
     {
         super(path, propertyNames);
         propName = propertyNames[0];
-        credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
     }
 
 
-    @Override public void contentChanged(NodeState root, CommitInfo info)
+
+    @Override
+    public void contentChanged(NodeState root, CommitInfo info)
     {
         super.contentChanged(root, info);
     }
@@ -85,9 +85,13 @@ public class FileNodeObserver extends NodeObserver implements Closeable
         if( repository == null ){
             repository = context.getBean(Repository.class);
         }
+        if( authenticatedHelper == null){
+            authenticatedHelper = context.getBean(AuthenticatedHelper.class);
+        }
 
+        Session session = null;
         try {
-            Session session = repository.login(credentials);
+            session = authenticatedHelper.getAdminSession();
 
             Node node = session.getNode(path);
 
@@ -103,6 +107,8 @@ public class FileNodeObserver extends NodeObserver implements Closeable
 
         }catch(Exception ex){
             log.error(ex);
+        }finally {
+            if( session != null) session.logout();
         }
 
     }
@@ -114,16 +120,19 @@ public class FileNodeObserver extends NodeObserver implements Closeable
         if( repository == null ){
             repository = context.getBean(Repository.class);
         }
+        if( authenticatedHelper == null){
+            authenticatedHelper = context.getBean(AuthenticatedHelper.class);
+        }
 
         try {
-            Session session = repository.login(credentials);
-
-
-            Node node = session.getNode(path);
 
             //System.out.println("{dir observer} added");
             // apply mixins
-            if( node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FILE) && changed.contains("jcr:data") ) {
+            if(  changed.contains("jcr:data") ) {
+                Session session = authenticatedHelper.getAdminSession();
+
+                Node node = session.getNode(path);
+
                 // trigger the real event system
                 reactor.notify("file.changed", Event.wrap(path));
             }
@@ -142,11 +151,12 @@ public class FileNodeObserver extends NodeObserver implements Closeable
         if( repository == null ){
             repository = context.getBean(Repository.class);
         }
+        if( authenticatedHelper == null){
+            authenticatedHelper = context.getBean(AuthenticatedHelper.class);
+        }
 
         try {
-            if (session == null || !session.isLive()) {
-                session = repository.login(credentials);
-            }
+            session = authenticatedHelper.getAdminSession();
 
             Node node = session.getNode(path);
 
@@ -188,7 +198,7 @@ public class FileNodeObserver extends NodeObserver implements Closeable
     {
 
         try {
-            Session session = repository.login(credentials);
+            Session session = authenticatedHelper.getAdminSession();
             Node fileNode = session.getNode(path);
 
             if( fileNode.isNodeType(JcrConstants.NT_FILE) ) {
@@ -233,7 +243,7 @@ public class FileNodeObserver extends NodeObserver implements Closeable
 
 
             }
-        }catch(RepositoryException re){
+        }catch(RepositoryException|AuthenticationException re){
             re.printStackTrace();
         }
     }

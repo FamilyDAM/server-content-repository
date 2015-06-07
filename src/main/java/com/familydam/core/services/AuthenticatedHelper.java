@@ -17,6 +17,7 @@
 
 package com.familydam.core.services;
 
+import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.security.UserAuthentication;
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
@@ -104,6 +106,18 @@ public class AuthenticatedHelper
     }
 
 
+
+    /**
+     * internal use only. This is used by background process to do async work on nodes (generate thumbnails, etc.)
+     * @return
+     * @throws AuthenticationException
+     */
+    public Session getAdminSession() throws AuthenticationException
+    {
+        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+        return getSession(credentials);
+    }
+
     /**
      * pull the credentials out of spring and login to the jcr repo
      * @param authentication_
@@ -122,12 +136,20 @@ public class AuthenticatedHelper
     }
 
 
-
+    /**
+     * Get the session tied to a credentials object
+     * @param credentials
+     * @return
+     * @throws AuthenticationException
+     */
     public Session getSession(Credentials credentials) throws AuthenticationException
     {
         try {
             if( credentials instanceof TokenCredentials) {
                 ((TokenCredentials) credentials).setAttribute("oak.refresh-interval", "2000");
+                ((TokenCredentials) credentials).setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, "1209600000");
+            }else if( credentials instanceof SimpleCredentials ){
+                ((SimpleCredentials) credentials).setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 86400000l);
             }
             Session session = repository.login(credentials, null);
             return session;
@@ -200,4 +222,5 @@ public class AuthenticatedHelper
         UserManager userMgr = null;//new UserManagerImpl(session.getRootNode(), NamePathMapper.DEFAULT, ConfigurationParameters.EMPTY);
         return userMgr;
     }
+
 }

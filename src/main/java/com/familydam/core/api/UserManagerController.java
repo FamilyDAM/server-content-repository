@@ -17,7 +17,6 @@
 
 package com.familydam.core.api;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.dao.UserDao;
 import com.familydam.core.security.CustomUserDetails;
@@ -128,7 +127,7 @@ public class UserManagerController
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+            session = authenticatedHelper.getAdminSession();
 
             UserManager userManager = ((SessionImpl) session).getUserManager();
 

@@ -17,8 +17,8 @@
 
 package com.familydam.core.observers.reactor.images;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,7 +33,7 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
+import javax.security.sasl.AuthenticationException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,16 +50,16 @@ public class ImageEvents
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     @Autowired private JobQueueServices jobQueueServices;
-    Session session = null;
+    @Autowired private AuthenticatedHelper authenticatedHelper;
 
     @Selector("file.added")
     public void handleImageAddedEvents(Event<String> evt)
     {
         String path = evt.getData();
 
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+        Session session = null;
         try {
-            session = repository.login(credentials);
+            session = authenticatedHelper.getAdminSession();
 
 
             if (!isRootPath(path)) {
@@ -75,9 +75,11 @@ public class ImageEvents
                     createJobs(node, session);
                 }
             }
-        }catch(RepositoryException re){
+        }catch(RepositoryException|AuthenticationException re){
             re.printStackTrace();
             reactor.notify("error", Event.wrap(re.getMessage()));
+        }finally {
+            if( session != null) session.logout();
         }
 
     }
@@ -88,10 +90,9 @@ public class ImageEvents
     {
         String path = evt.getData();
 
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         Session session = null;
         try {
-            session = repository.login(credentials);
+            session = authenticatedHelper.getAdminSession();
 
 
             if (!isRootPath(path)) {
@@ -108,8 +109,10 @@ public class ImageEvents
                     session.save();
                 }
             }
-        }catch(RepositoryException re){
+        }catch(RepositoryException|AuthenticationException re){
             reactor.notify("error", Event.wrap(re.getMessage()));
+        }finally {
+            if( session != null) session.logout();
         }
     }
 
@@ -158,14 +161,14 @@ public class ImageEvents
         props.put("width", 200);
         props.put("height", 200);
         jobQueueServices.addJob(session_, node, "image.thumbnail", props, 100l);
-        session.save();
+        session_.save();
 
         // parse the EXIF metadata
         jobQueueServices.addJob(session_, node, "image.metadata", Collections.EMPTY_MAP, 90l);
-        session.save();
+        session_.save();
 
         // calculate the phash of the image
         jobQueueServices.addJob(session_, node, "image.phash", Collections.EMPTY_MAP, 80l);
-        session.save();
+        session_.save();
     }
 }

@@ -17,10 +17,7 @@
 
 package com.familydam.core.observers.reactor.music;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
-import com.familydam.core.services.ImageRenditionsService;
-import com.familydam.core.services.JobQueueServices;
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
@@ -29,15 +26,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import reactor.core.Reactor;
 import reactor.spring.context.annotation.Consumer;
 
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -53,16 +46,6 @@ import java.util.Map;
 public class Mp3Observer
 {
     private Log log = LogFactory.getLog(this.getClass());
-
-    @Autowired private Reactor reactor;
-    @Autowired private Repository repository;
-    @Autowired private ImageRenditionsService imageRenditionsService;
-    @Autowired private JobQueueServices jobQueueServices;
-
-    SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-    Session session = null;
-
-
 
 
     public Node execute(Session session, Node node) throws RepositoryException, IOException, InterruptedException

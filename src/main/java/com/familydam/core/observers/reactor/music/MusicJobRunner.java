@@ -17,8 +17,8 @@
 
 package com.familydam.core.observers.reactor.music;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
 import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
@@ -31,9 +31,8 @@ import reactor.core.Reactor;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
+import javax.security.sasl.AuthenticationException;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.stream.Stream;
@@ -52,6 +51,7 @@ public class MusicJobRunner
     @Autowired private ImageRenditionsService imageRenditionsService;
     @Autowired private JobQueueServices jobQueueServices;
     @Autowired Mp3Observer mp3Observer;
+    @Autowired private AuthenticatedHelper authenticatedHelper;
 
     private int jobsPerIteration = 10;
 
@@ -59,9 +59,8 @@ public class MusicJobRunner
     @Scheduled(fixedRate = 10000)
     public void checkForJobs()
     {
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         try{
-            final Session _session = repository.login(credentials);;
+            final Session _session = authenticatedHelper.getAdminSession();
 
             Stream<Node> events = jobQueueServices.getEventJobs(_session, null, FamilyDAMConstants.WAITING);
             events
@@ -110,7 +109,9 @@ public class MusicJobRunner
                         }
                     });
 
-        }catch( RepositoryException re){
+            if( _session != null) _session.logout();
+
+        }catch( AuthenticationException re){
             log.error(re);
         }
     }

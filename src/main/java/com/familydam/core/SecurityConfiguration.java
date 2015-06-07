@@ -60,15 +60,15 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
+                //.antMatchers(actuatorEndpoints()).hasRole(backendAdminRole)
                 // Allow anonymous resource requests
                 .antMatchers("/").permitAll()
+                .antMatchers("/**").permitAll()
                 .antMatchers("/favicon.ico").permitAll()
-                .antMatchers("**/*.html").permitAll()
-                .antMatchers("**/*.css").permitAll()
-                .antMatchers("**/*.js").permitAll()
+                .antMatchers("/public/**").permitAll()
+                .antMatchers("/static/**").permitAll()
                 .antMatchers("/api/users/**").permitAll()
-                //.antMatchers(actuatorEndpoints()).hasRole(backendAdminRole)
-                .anyRequest().authenticated();
+                .antMatchers("/api/**").authenticated();
 
         http.addFilterBefore(new TokenAuthFilter(tokenHandler, userDetailsService, repository, null), BasicAuthenticationFilter.class);
 

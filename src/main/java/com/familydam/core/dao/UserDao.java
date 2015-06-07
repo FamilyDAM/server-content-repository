@@ -17,23 +17,23 @@
 
 package com.familydam.core.dao;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.services.AuthenticatedHelper;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.security.sasl.AuthenticationException;
 import java.util.Collection;
 
 /**
@@ -55,6 +55,7 @@ public class UserDao
         try {
             SimpleCredentials credentials = new SimpleCredentials(username_, password_.toCharArray());
             credentials.setAttribute(".token", "");
+            credentials.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 1209600000l);
 
             //todo: add "admin" filter, so it's not allowed.
             session = repository.login(credentials, null);
@@ -95,10 +96,7 @@ public class UserDao
     {
         Session session = null;
         try {
-            Credentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-
-            //todo: add "admin" filter, so it's not allowed.
-            session = repository.login(credentials, null);
+            session = authenticatedHelper.getAdminSession();
 
 
             UserManager userManager = (((SessionImpl) session).getUserManager());
@@ -118,13 +116,10 @@ public class UserDao
 
             throw new UsernameNotFoundException(principal_);
         }
-        catch(RepositoryException ex){
+        catch(RepositoryException|AuthenticationException ex){
             throw new UsernameNotFoundException(principal_);
-        }
-        finally {
-            if (session != null) {
-                session.logout();
-            }
+        }finally {
+            if( session != null) session.logout();
         }
     }
 
@@ -135,10 +130,7 @@ public class UserDao
     {
         Session session = null;
         try {
-            Credentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-
-            //todo: add "admin" filter, so it's not allowed.
-            session = repository.login(credentials, null);
+            session = authenticatedHelper.getAdminSession();
 
             UserManager userManager = (((SessionImpl) session).getUserManager());
             Authorizable authorizable = userManager.getAuthorizableByPath(path_);
@@ -155,7 +147,7 @@ public class UserDao
 
             throw new UsernameNotFoundException(path_);
         }
-        catch(RepositoryException ex){
+        catch(RepositoryException|AuthenticationException ex){
             throw new UsernameNotFoundException(path_);
         }
         finally {

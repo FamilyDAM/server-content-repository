@@ -162,9 +162,7 @@ public class DirectoryController
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         finally {
-            if (session != null) {
-                session.logout();
-            }
+            if (session != null) session.logout();
         }
     }
 

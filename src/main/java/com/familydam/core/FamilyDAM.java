@@ -5,12 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.embedded.MultipartConfigFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.servlet.MultipartConfigElement;
 
 @SpringBootApplication
 @EnableScheduling
-public class FamilyDAM
+public class FamilyDAM extends WebMvcConfigurerAdapter
 {
     public static String adminUserId = "admin";
     public static String adminPassword = "admin";
@@ -20,8 +21,6 @@ public class FamilyDAM
     {
         SpringApplication.run(FamilyDAM.class, args);
     }
-
-
 
     @Bean
     MultipartConfigElement multipartConfigElement() {

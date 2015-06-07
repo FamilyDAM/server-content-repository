@@ -121,8 +121,9 @@ public class ImportController
             @AuthenticationPrincipal Authentication currentUser_) throws LoginException, NoSuchWorkspaceException, IOException, ServletException
     {
         boolean fileExists = false;
+        Session session = null;
         try {
-            Session session = authenticatedHelper.getSession(currentUser_);
+            session = authenticatedHelper.getSession(currentUser_);
 
             // FIND the path
             String _path = request.getParameter("path");
@@ -184,6 +185,11 @@ public class ImportController
             ex.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
     }
 
 
@@ -211,27 +217,37 @@ public class ImportController
                                            @RequestParam(value = "path", required = false) String path
     ) throws LoginException, NoSuchWorkspaceException, IOException, RepositoryException
     {
-        Session session = authenticatedHelper.getSession(currentUser_);
-        if (dir == null && path == null) {
-            // check body for json packet
-            String json = IOUtils.toString(request.getInputStream());
-            if (json != null) {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode props = mapper.readTree(json);
-                dir = props.path("dir").asText();
-                path = props.path("path").asText();
+        Session session = null;
+        try {
+            session = authenticatedHelper.getSession(currentUser_);
+            if (dir == null && path == null) {
+                // check body for json packet
+                String json = IOUtils.toString(request.getInputStream());
+                if (json != null) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode props = mapper.readTree(json);
+                    dir = props.path("dir").asText();
+                    path = props.path("path").asText();
+                }
+            }
+
+            File _file = new File(path);
+            if (!_file.exists()) {
+                return new ResponseEntity<Object>(HttpStatus.NOT_FOUND);
+            }
+
+            Node _parent = session.getNode(dir);
+
+            if (_file.isDirectory()) {
+                return copyLocalFolder(session, currentUser_, _file, _parent, recursive);
+            } else {
+                return copyLocalFile(session, currentUser_, _file, _parent);
             }
         }
-
-        File _file = new File(path);
-        if (!_file.exists()) {
-            return new ResponseEntity<Object>(HttpStatus.NOT_FOUND);
-        }
-
-        if (_file.isDirectory()) {
-            return copyLocalFolder(session, currentUser_,  _file, dir, recursive);
-        } else {
-            return copyLocalFile(session, currentUser_, _file, dir);
+        finally {
+            if (session != null) {
+                session.logout();
+            }
         }
     }
 
@@ -250,14 +266,14 @@ public class ImportController
             Session session,
             Authentication currentUser_,
             File folder,
-            String dir,
+            Node parent,
             boolean recursive) throws LoginException, NoSuchWorkspaceException, javax.security.sasl.AuthenticationException, IOException, RepositoryException
     {
-        if (!session.isLive()) {
-            session = authenticatedHelper.getSession(currentUser_);
-        }
 
-        String _newDir = dir +folder.getName() +"/";
+
+        String _name = cleanFileName(folder.getName());
+        Node _folderNode = JcrUtils.getOrAddNode(parent, _name, JcrConstants.NT_FOLDER);
+        session.save();
 
         File[] files = folder.listFiles();
 
@@ -265,14 +281,15 @@ public class ImportController
             File _folderOrFile = files[i];
 
             if (_folderOrFile.isDirectory() && recursive) {
-                copyLocalFolder(session, currentUser_, _folderOrFile, _newDir, true);
+                copyLocalFolder(session, currentUser_, _folderOrFile, _folderNode, true);
             } else if (_folderOrFile.isFile() && !_folderOrFile.isHidden()) {
-                copyLocalFile(session, currentUser_, _folderOrFile, _newDir);
+                copyLocalFile(session, currentUser_, _folderOrFile, _folderNode);
             }
         }
 
 
         return new ResponseEntity<Object>(HttpStatus.CREATED);
+
     }
 
 
@@ -290,23 +307,19 @@ public class ImportController
     private ResponseEntity<Object> copyLocalFile(
             Session session,
             Authentication currentUser_,
-            File file
-            , String dir) throws LoginException, NoSuchWorkspaceException, javax.security.sasl.AuthenticationException, IOException, RepositoryException
+            File file,
+            Node parent) throws LoginException, NoSuchWorkspaceException, javax.security.sasl.AuthenticationException, IOException, RepositoryException
     {
+
         if (!session.isLive()) {
             session = authenticatedHelper.getSession(currentUser_);
         }
 
         Node root = session.getNode("/");
-        String dirPath = dir.replace("~", FamilyDAMConstants.CONTENT_ROOT);
-        if (!dirPath.startsWith("/" + FamilyDAMConstants.CONTENT_ROOT)) {
-            dirPath = "/" + FamilyDAMConstants.CONTENT_ROOT + dirPath;
-        }
-
-        Node copyToDir = JcrUtils.getOrCreateByPath(dirPath, JcrConstants.NT_FOLDER, session);
+        //Node copyToDir = JcrUtils.getOrCreateByPath(dirPath, JcrConstants.NT_FOLDER, session);
 
 
-        String fileName = file.getName();
+        String fileName = cleanFileName(file.getName());
 
         // first use the java lib, to get the mime type
         String mimeType = Files.probeContentType(file.toPath());
@@ -319,9 +332,7 @@ public class ImportController
         // Upload the FILE
         //Node fileNode = JcrUtils.putFile(copyToDir, fileName, mimeType, new BufferedInputStream(new FileInputStream(file)));
         InputStream fileIS = new BufferedInputStream(new FileInputStream(file));
-        Node fileNode = JcrUtils.putFile(copyToDir, fileName, mimeType, fileIS);
-
-
+        Node fileNode = JcrUtils.putFile(parent, fileName, mimeType, fileIS);
         // save the primary file.
         session.save();
 
@@ -346,7 +357,7 @@ public class ImportController
      */
     private String cleanFileName(String fileName_)
     {
-        return Text.escapeIllegalJcrChars(fileName_);
+        return Text.escapeIllegalJcrChars(fileName_.replace("\u00A0", " "));
     }
 
 }

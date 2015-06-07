@@ -19,10 +19,9 @@ package com.familydam.core.observers.reactor.images;
 
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.MetadataException;
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
-import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -34,10 +33,8 @@ import reactor.spring.context.annotation.Consumer;
 import reactor.spring.context.annotation.Selector;
 
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
@@ -51,9 +48,8 @@ public class ThumbnailObserver
 
 
     @Autowired private Reactor reactor;
-    @Autowired private Repository repository;
     @Autowired private ImageRenditionsService imageRenditionsService;
-    @Autowired private JobQueueServices jobQueueServices;
+    @Autowired private AuthenticatedHelper authenticatedHelper;
 
     private int jobsPerIteration = 4;
 
@@ -99,10 +95,9 @@ public class ThumbnailObserver
     {
         String path = evt.getData();
 
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         Session session = null;
         try{
-            session = repository.login(credentials);
+            session = authenticatedHelper.getAdminSession();
 
             if( path.startsWith("/") )
             {
@@ -134,11 +129,8 @@ public class ThumbnailObserver
         }catch(Exception re){
             re.printStackTrace();
             log.error(re);
-        }
-        finally {
-            if( session != null) {
-                session.logout();
-            }
+        }finally {
+            if( session != null) session.logout();
         }
     }
 

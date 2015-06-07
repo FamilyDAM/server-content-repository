@@ -20,6 +20,7 @@ package com.familydam.core.api.userManager;
 import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.api.fileManager.RootDirTest;
+import com.familydam.core.services.AuthenticatedHelper;
 import junit.framework.Assert;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
@@ -69,6 +70,8 @@ public class UserManagerTests
 
     @Autowired
     private Repository repository;
+
+    @Autowired private AuthenticatedHelper authenticatedHelper;
 
     private MockMvc mockMvc;
 
@@ -197,7 +200,7 @@ public class UserManagerTests
         Session session = null;
         Session session2 = null;
         try {
-            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+            session = authenticatedHelper.getAdminSession();
 
             UserManager userManager = ((SessionImpl) session).getUserManager();
 
@@ -227,7 +230,8 @@ public class UserManagerTests
             Assert.fail(ex.getMessage());
         }
         finally {
-            session.logout();
+            if( session != null) session.logout();
+            if( session2 != null) session2.logout();
         }
     }
 

@@ -19,8 +19,8 @@ package com.familydam.core.observers.reactor.images;
 
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.MetadataException;
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
 import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
@@ -33,9 +33,8 @@ import reactor.core.Reactor;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
+import javax.security.sasl.AuthenticationException;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
@@ -58,6 +57,7 @@ public class ImageJobRunner
     @Autowired ExifObserver exifObserver;
     @Autowired PHashObserver pHashObserver;
     @Autowired ThumbnailObserver thumbnailObserver;
+    @Autowired AuthenticatedHelper authenticatedHelper;
 
     private int jobsPerIteration = 10;
 
@@ -65,10 +65,9 @@ public class ImageJobRunner
     @Scheduled(fixedRate = 10000)
     public void checkForJobs()
     {
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         Session session = null;
         try{
-            session = repository.login(credentials);
+            session = authenticatedHelper.getAdminSession();
 
             final Session _session = session;
 
@@ -129,8 +128,10 @@ public class ImageJobRunner
 
             System.gc();
 
-        }catch( RepositoryException re){
+        }catch( AuthenticationException re){
             log.error(re);
+        }finally {
+            if( session != null) session.logout();
         }
     }
 

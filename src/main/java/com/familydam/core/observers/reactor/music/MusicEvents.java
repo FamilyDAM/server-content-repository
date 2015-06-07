@@ -17,8 +17,8 @@
 
 package com.familydam.core.observers.reactor.music;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.JobQueueServices;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,7 +33,7 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
+import javax.security.sasl.AuthenticationException;
 import java.util.Collections;
 
 /**
@@ -48,6 +48,7 @@ public class MusicEvents
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     @Autowired private JobQueueServices jobQueueServices;
+    @Autowired private AuthenticatedHelper authenticatedHelper;
 
     Session session = null;
 
@@ -56,9 +57,8 @@ public class MusicEvents
     {
         String path = evt.getData();
 
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         try {
-            Session session = repository.login(credentials);
+            Session session = authenticatedHelper.getAdminSession();
 
 
             // Obvious child nodes we can skip
@@ -85,8 +85,10 @@ public class MusicEvents
                     //reactor.notify("image.phash", Event.wrap(node.getPath()));
                 }
             }
-        }catch(RepositoryException re){
+        }catch(RepositoryException|AuthenticationException re){
             reactor.notify("error", Event.wrap(re.getMessage()));
+        }finally {
+            if( session != null) session.logout();
         }
 
     }
@@ -97,10 +99,9 @@ public class MusicEvents
     {
         String path = evt.getData();
 
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
         Session session = null;
         try {
-            session = repository.login(credentials);
+            session = authenticatedHelper.getAdminSession();
 
 
             if (!isRootPath(path)) {
@@ -117,8 +118,10 @@ public class MusicEvents
                     session.save();
                 }
             }
-        }catch(RepositoryException re){
+        }catch(RepositoryException|AuthenticationException re){
             reactor.notify("error", Event.wrap(re.getMessage()));
+        }finally {
+            if( session != null) session.logout();
         }
     }
 

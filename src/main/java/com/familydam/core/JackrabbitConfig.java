@@ -73,7 +73,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Configuration
 public class JackrabbitConfig
 {
-    //@Autowired() private ImageRenditionsService imageRenditionsService;
+
 
     @Bean
     public Repository jcrRepository()
@@ -134,7 +134,7 @@ public class JackrabbitConfig
             Oak oak = new Oak(segmentNodeStore)
                     .with("familyDAM")
                     .with(new InitialDAMContent(segmentNodeStore))       // add initial content and folder structure
-                            //.with(new SecurityProviderImpl())  // use the default security
+                            //.with(securityProvider())  // use the default security
                             //.with(new DefaultTypeEditor())     // automatically set default types
                             //.with(new NameValidatorProvider()) // allow only valid JCR names
                             //.with(new OpenSecurityProvider())
@@ -188,13 +188,14 @@ public class JackrabbitConfig
 
 
 
-    /****
+
+    /**
     @Bean
     public SecurityProvider securityProvider()
     {
-        return new SecurityProviderImpl(ConfigurationParameters.EMPTY);
-    }
-    ***/
+        return new com.familydam.core.security.SecurityProvider();
+    } **/
+
 
 
     protected javax.security.auth.login.Configuration getConfiguration() {
@@ -274,6 +275,7 @@ public class JackrabbitConfig
     {
         Session session = null;
         try {
+            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
             session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
 
             Node _rootNode = session.getRootNode();
@@ -352,7 +354,8 @@ public class JackrabbitConfig
 
         Session session = null;
         try {
-            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
+            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+            session = repository.login(credentials);
 
             QueryManager queryManager = session.getWorkspace().getQueryManager();
             //Query query = queryManager.createQuery(sql, "JCR-SQL2");
@@ -404,9 +407,9 @@ public class JackrabbitConfig
             }
         };
 
-        ServletRegistrationBean bean = new ServletRegistrationBean(servlet, "/webdav/*");
+        ServletRegistrationBean bean = new ServletRegistrationBean(servlet, "/drive/*");
 
-        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/webdav");
+        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/drive");
         //bean.addInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER, "Basic realm=\"Oak\"");
 
         return bean;
