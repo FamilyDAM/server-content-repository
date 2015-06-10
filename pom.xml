@@ -235,7 +235,7 @@
                             <outputDirectory>${basedir}/target/classes/public</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${basedir}/../client-desktop/dist/apps/dashboard</directory>
+                                    <directory>${basedir}/../app-dashboard/dist/</directory>
                                 </resource>
                             </resources>
                         </configuration>
