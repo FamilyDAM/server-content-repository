@@ -55,6 +55,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
                 .antMatchers("/public/**").permitAll()
                 .antMatchers("/static/**").permitAll()
                 .antMatchers("/api/users/**").permitAll()
+                .antMatchers("/api/~/**").permitAll()
                 .antMatchers("/api/**").authenticated();
 
         http.addFilterBefore(new TokenAuthFilter(tokenHandler, userDetailsService, repository, null), BasicAuthenticationFilter.class);

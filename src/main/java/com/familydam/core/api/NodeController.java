@@ -5,6 +5,7 @@
 package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAMConstants;
+import com.familydam.core.JackrabbitConfig;
 import com.familydam.core.helpers.PropertyUtil;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
@@ -43,6 +44,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
 import java.util.Map;
 
 /**
@@ -65,7 +67,7 @@ public class NodeController
 
 
     /**
-     * Get the node details by path 
+     * Get a single File or Property map if it is not a nt_file node
      * @param request
      * @param response
      * @return
@@ -75,17 +77,17 @@ public class NodeController
      * @throws CommitFailedException
      */
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @RequestMapping(value = "/~/**", method = RequestMethod.GET)
+    @RequestMapping(value = "/dam:files/**", method = RequestMethod.GET)
     public ResponseEntity<Object> getNodeByPath(
             HttpServletRequest request,
             HttpServletResponse response,
-            @AuthenticationPrincipal Authentication currentUser_) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
         try {
             session = authenticatedHelper.getSession(currentUser_);
-            String _relativePath = request.getRequestURI().replace("%20", " ");
-            Node contentRoot = authenticatedHelper.getContentRoot(session, _relativePath);
+            String _relativePath = request.getRequestURI().replace("%20", " ").replace("/~/", "/");
+            Node contentRoot = session.getNode(_relativePath);
 
 
             if (contentRoot.isNodeType(JcrConstants.NT_FILE)) {
@@ -108,6 +110,7 @@ public class NodeController
 
         }
         catch (Exception ae) {
+            ae.printStackTrace();
             return new ResponseEntity<Object>(HttpStatus.UNAUTHORIZED);
         }
         finally {
@@ -244,7 +247,7 @@ public class NodeController
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/api/data/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteNodeById(HttpServletRequest request, HttpServletResponse response,
-                                                 @AuthenticationPrincipal Authentication currentUser_,
+                                                 @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_,
                                                @PathVariable(value = "id") String id_) throws IOException, LoginException, NoSuchWorkspaceException, CommitFailedException
     {
         Session session = null;
@@ -252,12 +255,38 @@ public class NodeController
             session = authenticatedHelper.getSession(currentUser_);
             Node node = session.getNodeByIdentifier(id_);
 
-            node.remove();
-            session.save();
+            // only allow the deletion of user nodes
+            if( node.isNodeType("dam:userfolder") || node.isNodeType("dam:file") ) {
 
-            return new ResponseEntity<>(id_, HttpStatus.OK);
+                // special check, so we can add _source prop
+                if( !node.isNodeType("dam:extensible") ){
+                    node.addMixin("dam:extensible");
+                    session.save();
+                }
+
+                node.setProperty("_trashSource", node.getPath());
+                node.setProperty("_trashDate", Calendar.getInstance());
+
+                //todo check delete permission first
+                Node trashDest = JcrUtils.getOrCreateByPath(JackrabbitConfig.trashPath + node.getParent().getPath(), node.getParent().getPrimaryNodeType().getName(), session);
+
+                Node checkExisting = JcrUtils.getNodeIfExists(trashDest.getPath() + "/" + node.getName(), session);
+                if (checkExisting != null) {
+                    // item in the trash with the same name/path. So we'll delete the old item so we can replace it.
+                    checkExisting.remove();
+                    session.save();
+                }
+
+                session.move(node.getPath(), trashDest.getPath() + "/" + node.getName());
+                session.save();
+
+                return new ResponseEntity<>(id_, HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+            }
         }
         catch (Exception ae) {
+            ae.printStackTrace();
             return new ResponseEntity<>(id_, HttpStatus.UNAUTHORIZED);
         }
         finally {

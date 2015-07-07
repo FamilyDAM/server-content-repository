@@ -23,11 +23,11 @@ import reactor.spring.context.config.EnableReactor;
 public class ReactorConfig
 {
 
-    @Bean
+    @Bean(name="reactorEngine")
     public Reactor reactor(Environment env)
     {
         //Dispatcher dispatcher = new ThreadPoolExecutorDispatcher(4, 1024, "observers");
-        Dispatcher dispatcher = new WorkQueueDispatcher("familydam-observers", 4, 1024, null);
+        Dispatcher dispatcher = new WorkQueueDispatcher("familydam-reactor-observers", 4, 1024, null);
         return Reactors.reactor().env(env).dispatcher(dispatcher).get();
     }
 

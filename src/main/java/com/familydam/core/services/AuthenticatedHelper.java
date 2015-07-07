@@ -61,27 +61,6 @@ public class AuthenticatedHelper
     }
 
 
-    /**
-     * Get a relative node under the root content folder 
-     * @param session
-     * @param relativePath_
-     * @return
-     * @throws RepositoryException
-     */
-    public Node getContentRoot(Session session, String relativePath_) throws RepositoryException
-    {
-        Node root = session.getRootNode();
-        Node contentRoot = root.getNode(FamilyDAMConstants.CONTENT_ROOT);
-        
-        relativePath_ = relativePath_.replace("/~/", "").replace("/"+FamilyDAMConstants.CONTENT_ROOT, "");
-        if (relativePath_ != null && relativePath_.length() > 1) {
-            if (relativePath_.startsWith("/")) {
-                relativePath_ = relativePath_.substring(1);
-            }
-            contentRoot = contentRoot.getNode(relativePath_);
-        }
-        return contentRoot;
-    }
 
 
     public SecurityProvider getSecurityProvider()

@@ -39,7 +39,7 @@ public class PropertyUtil
         Map<String, Object> nodeProps = new HashMap();
 
         // change the real path to match the REST path
-        nodeProps.put(JcrConstants.JCR_PATH, node.getPath().replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "/~/"));
+        nodeProps.put(JcrConstants.JCR_PATH, node.getPath());
         nodeProps.put(JcrConstants.JCR_NAME, node.getName());
 
         // get simple properties

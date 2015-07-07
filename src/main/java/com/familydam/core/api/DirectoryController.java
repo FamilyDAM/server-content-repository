@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -59,7 +58,7 @@ public class DirectoryController
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public ResponseEntity<List<INode>> getDirectoryTree(
             HttpServletRequest request, HttpServletResponse response,
-            @AuthenticationPrincipal Authentication currentUser_,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_,
             @RequestParam(value = "root", required = false, defaultValue = "/") String path)
             throws RepositoryException
     {
@@ -67,7 +66,7 @@ public class DirectoryController
         try {
             session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
-            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
+            Node contentRoot = session.getNode(path);
 
             List<INode> nodes = walkDirectoryTree(contentRoot);
             return new ResponseEntity<>(nodes, HttpStatus.OK);
@@ -102,7 +101,7 @@ public class DirectoryController
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<Collection<Directory>> createNewDirectory(
             HttpServletRequest request, HttpServletResponse response,
-            @AuthenticationPrincipal Authentication currentUser_,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_,
             @RequestParam(value = "path", required = false, defaultValue = "/dam:files/") String path,
             @RequestParam(value = "name", required = false, defaultValue = "New Folder") String name)
             throws RepositoryException
@@ -111,7 +110,7 @@ public class DirectoryController
         try {
             session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
-            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
+            Node contentRoot = session.getNode(path);
 
 
             //todo: add validation to make sure we don't the few system properties
@@ -133,6 +132,7 @@ public class DirectoryController
             newNode.addMixin( JcrConstants.MIX_REFERENCEABLE );
             newNode.addMixin("mix:created");
             newNode.addMixin("dam:userfolder");
+            newNode.addMixin("dam:extensible");
             session.save();
             //todo assign permissions
             
@@ -167,7 +167,7 @@ public class DirectoryController
     @RequestMapping(value = "/", method = RequestMethod.DELETE)
     public ResponseEntity deleteDirectory(
             HttpServletRequest request, HttpServletResponse response,
-            @AuthenticationPrincipal Authentication currentUser_,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_,
             @RequestBody MultiValueMap<String, String> formData)
             throws RepositoryException
     {
@@ -183,7 +183,7 @@ public class DirectoryController
         try {
             session = authenticatedHelper.getSession(currentUser_);
             Node root = session.getRootNode();
-            Node contentRoot = authenticatedHelper.getContentRoot(session, path);
+            Node contentRoot = session.getNode(path);
 
             // todo make sure it's not the system folder / content root
             if( !contentRoot.getName().equalsIgnoreCase("dam:content")) {

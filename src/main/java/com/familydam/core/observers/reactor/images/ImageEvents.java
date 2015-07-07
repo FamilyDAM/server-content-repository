@@ -11,6 +11,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import reactor.core.Reactor;
 import reactor.event.Event;
 import reactor.spring.context.annotation.Consumer;
@@ -34,6 +35,7 @@ public class ImageEvents
 
     private Log log = LogFactory.getLog(this.getClass());
 
+    @Qualifier("reactorEngine")
     @Autowired private Reactor reactor;
     @Autowired private Repository repository;
     @Autowired private JobQueueServices jobQueueServices;

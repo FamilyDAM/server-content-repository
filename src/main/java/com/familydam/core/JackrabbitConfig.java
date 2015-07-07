@@ -79,6 +79,9 @@ public class JackrabbitConfig
     @Value("${jcr.observer.threads}")
     public Integer jcrObserverThreads = 10;
 
+    public static String trashPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
+    public static String assetsPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
+    public static String jobQueuePath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
 
     @Bean
     public Repository jcrRepository()
@@ -158,6 +161,7 @@ public class JackrabbitConfig
     private FileStore fileStore() throws IOException
     {
         File repoDir = new File("./familydam-repo");
+        File blobStoreDir = new File(repoDir.getPath() +"/blobstore");
         /**
          ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
          FileDataStore fileDataStore = new FileDataStore();
@@ -167,7 +171,7 @@ public class JackrabbitConfig
          **/
 
 
-        FileBlobStore fileBlobStore = new FileBlobStore(repoDir.getAbsolutePath());
+        FileBlobStore fileBlobStore = new FileBlobStore(blobStoreDir.getAbsolutePath());
         //int maxFileSize = (1024 * 1024) * 10; //1gig
         //FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
         //FileStore source = new FileStore(repoDir, maxFileSize, false);
@@ -312,12 +316,21 @@ public class JackrabbitConfig
         _assetsFolderNode.addMixin("dam:systemfolder");
         _assetsFolderNode.addMixin("dam:extensible");
         _assetsFolderNode.setProperty(JcrConstants.JCR_NAME, "assets");
+        this.assetsPath = _assetsFolderNode.getPath();
+
+        Node _trashFolderNode = JcrUtils.getOrAddNode(_filesNode, "trash", JcrConstants.NT_UNSTRUCTURED);
+        _trashFolderNode.addMixin("mix:created");
+        _trashFolderNode.addMixin("dam:systemfolder");
+        _trashFolderNode.addMixin("dam:extensible");
+        _trashFolderNode.setProperty(JcrConstants.JCR_NAME, "trash");
+        this.trashPath = _trashFolderNode.getPath();
 
         Node _jobQueueFolderNode = JcrUtils.getOrAddNode(_filesNode, "job-queue", JcrConstants.NT_UNSTRUCTURED);
         _jobQueueFolderNode.addMixin("mix:created");
         _jobQueueFolderNode.addMixin("dam:systemfolder");
         _jobQueueFolderNode.addMixin("dam:extensible");
         _jobQueueFolderNode.setProperty(JcrConstants.JCR_NAME, "job-queue");
+        this.jobQueuePath = _jobQueueFolderNode.getPath();
         return _filesNode;
     }
 
