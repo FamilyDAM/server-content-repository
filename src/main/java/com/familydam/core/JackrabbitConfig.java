@@ -7,7 +7,15 @@ package com.familydam.core;
 import com.familydam.core.observers.FileNodeObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
+import com.familydam.core.security.SecurityProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -20,12 +28,15 @@ import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.value.StringValue;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,6 +60,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -61,22 +73,21 @@ import java.util.concurrent.ScheduledExecutorService;
 public class JackrabbitConfig
 {
 
+    @Value("${jcr.threads}")
+    public Integer jcrThreads = 3;
+
+    @Value("${jcr.observer.threads}")
+    public Integer jcrObserverThreads = 10;
+
 
     @Bean
     public Repository jcrRepository()
     {
         try {
-            ScheduledExecutorService executor = Executors.newScheduledThreadPool(3);
-            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
+            ScheduledExecutorService executor = Executors.newScheduledThreadPool(jcrThreads);
+            ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(jcrObserverThreads);
 
-            // create Observers
-            // create thumbnails
-            //ImageRenditionsObserver imageRenditionObserver = new ImageRenditionsObserver("/dam");
-            //imageRenditionObserver.setImageRenditionsService(imageRenditionsService);
-            // parse out exif metadata
-            //ImageExifObserver imageExifObserver = new ImageExifObserver("/dam");
-            // generate a phash for each image (so we can find like photos & duplicates)
-            //ImagePHashObserver imagePHashObserver = new ImagePHashObserver("/dam");
+
 
             // create JCR object
             Jcr jcr = new Jcr(getOak())
@@ -89,18 +100,17 @@ public class JackrabbitConfig
 
             // Using the CND file, make sure all of the required mix-ins have been created.
             registerCustomNodeTypes(repository);
-            
-            registerSystemDirectories(repository);
-            registerCustomUsers(repository);
 
-            // Add Session
-            // imageRenditionObserver.setRepository(repository);
-            //imageExifObserver.setRepository(repository);
-            //imagePHashObserver.setRepository(repository);
+            // register the default system directories
+            registerSystemDirectories(repository);
+
+            // create the user object
+            createCustomUsers(repository);
+
+            // add users if the start up argument was passed in
+            createCustomUserFolders(repository);
 
             javax.security.auth.login.Configuration.setConfiguration(getConfiguration());
-
-
 
             return repository;
         }
@@ -115,11 +125,15 @@ public class JackrabbitConfig
     private Oak getOak()
     {
         try {
-
             NodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore()).create();
 
+            Map props = new HashMap<>();
+            props.put("PARAM_ADMIN_ID", "aaddmmiinn");
+            props.put("PARAM_OMIT_ADMIN_PW", false);
+            ConfigurationParameters _securityConfig = ConfigurationParameters.of(props);
+
             Oak oak = new Oak(segmentNodeStore)
-                    .with("familyDAM")
+                    .with("FamilyDAM")
                     .with(new InitialDAMContent(segmentNodeStore))       // add initial content and folder structure
                             //.with(securityProvider())  // use the default security
                             //.with(new DefaultTypeEditor())     // automatically set default types
@@ -127,6 +141,7 @@ public class JackrabbitConfig
                             //.with(new OpenSecurityProvider())
                             //.with(new PropertyIndexHook())     // simple indexing support
                             //.with(new PropertyIndexProvider()) // search support for the indexes
+                            .with(new SecurityProvider(_securityConfig))
                     .with(new CommitDAMHook());
 
 
@@ -184,7 +199,10 @@ public class JackrabbitConfig
     } **/
 
 
-
+    /**
+     * Configure the sercurity provider and set token settings
+     * @return
+     */
     protected javax.security.auth.login.Configuration getConfiguration() {
         return new javax.security.auth.login.Configuration() {
             @Override
@@ -268,7 +286,7 @@ public class JackrabbitConfig
             Node _rootNode = session.getRootNode();
             Node _systemNode = createDAMSystemFolder(_rootNode, session);
             Node _filesNode = createDAMFilesFolder(_rootNode);
-            Node _cloudNode = createDAMCloudFolder(_rootNode);
+            //Node _cloudNode = createDAMCloudFolder(_rootNode);
 
             session.save();
         }catch(Exception ex){
@@ -328,21 +346,87 @@ public class JackrabbitConfig
     }
 
 
-
-
-
-
-
-
-
-    private void registerCustomUsers(Repository repository)
+    private void createCustomUsers(Repository repository)
     {
-        String[] users = new String[]{"admin", "angie", "kayden", "hailey"};
-
         Session session = null;
         try {
             SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
             session = repository.login(credentials);
+            UserManager userManager = ((JackrabbitSession) session).getUserManager();
+
+
+            File settingsFile = new File("./systemprops.properties");
+            if( settingsFile.exists() )
+            {
+                try {
+                    String _settings = FileUtils.readFileToString(settingsFile);
+
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map _settingProps = objectMapper.readValue(_settings, Map.class);
+
+                    if( _settingProps.get("users") != null ){
+                        List<Map> users = (List<Map>)_settingProps.get("users");
+
+                        for (Map user : users) {
+
+
+                            String p = user.get("password").toString();
+                            String fName = user.get("firstName").toString();
+                            String lName = user.get("lastName").toString();
+
+                            Authorizable authorizable = userManager.getAuthorizable(fName);
+                            if( authorizable == null ) {
+                                User _user = userManager.createUser(fName, p);
+                                _user.setProperty("firstName", new StringValue(fName));
+                                _user.setProperty("lastName", new StringValue(lName));
+                            }
+
+                        }
+                    }
+
+                    session.save();
+
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }finally {
+            if( session != null) session.logout();
+        }
+    }
+
+
+
+    /**
+     * Create the initial users accounts and folder - defined in the startup wizard.
+     * And create the new ADMIN user.
+     * @param repository
+     */
+    private void createCustomUserFolders(Repository repository)
+    {
+        Session session = null;
+        try {
+            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+            session = repository.login(credentials);
+
+            UserManager userManager = ((JackrabbitSession) session).getUserManager();
+
+            final javax.jcr.Value anonymousValue = session.getValueFactory().createValue("anonymous");
+            final javax.jcr.Value adminValue = session.getValueFactory().createValue("admin");
+
+            Iterator<Authorizable> users = userManager.findAuthorizables(new org.apache.jackrabbit.api.security.user.Query()
+            {
+                @Override public <T> void build(QueryBuilder<T> builder)
+                {
+                    builder.setCondition(builder.and( builder.neq("rep:principalName", new StringValue("admin")) , builder.neq("rep:principalName", new StringValue("anonymous")) ) );
+                    builder.setSortOrder("@rep:principalName", QueryBuilder.Direction.ASCENDING);
+                    builder.setSelector(User.class);
+                }
+            });
+
 
             QueryManager queryManager = session.getWorkspace().getQueryManager();
             //Query query = queryManager.createQuery(sql, "JCR-SQL2");
@@ -358,12 +442,17 @@ public class JackrabbitConfig
                 javax.jcr.Node node = nodeItr.nextNode();
 
                 if( !node.getPath().equals("/") ) {
-                    for (String user : users) {
-                        Node _node = JcrUtils.getOrAddFolder(node, user);
-                        _node.addMixin("mix:created");
-                        _node.addMixin("dam:userfolder");
-                        _node.addMixin("dam:extensible");
-                        _node.setProperty(JcrConstants.JCR_NAME, user);
+                    while( users.hasNext() ){
+                        Authorizable user = users.next();
+
+                        if( !user.getID().equals("admin") && !user.getID().equals("anonymous") ) {
+                            Node _node = JcrUtils.getOrAddFolder(node, user.getID());
+                            _node.addMixin("mix:created");
+                            _node.addMixin("dam:userfolder");
+                            _node.addMixin("dam:extensible");
+                            _node.setProperty(JcrConstants.JCR_NAME, user.getID());
+                        }
+
                         session.save();
                     }
                 }

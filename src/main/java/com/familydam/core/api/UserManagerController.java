@@ -17,6 +17,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
+import org.apache.jackrabbit.value.StringValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -119,14 +120,13 @@ public class UserManagerController
             UserManager userManager = ((SessionImpl) session).getUserManager();
 
             final Value anonymousValue = session.getValueFactory().createValue("anonymous");
-            //final Value adminValue = session.getValueFactory().createValue("admin"); //todo: add admin as filter
+            final Value adminValue = session.getValueFactory().createValue("admin");
 
             Iterator<Authorizable> users = userManager.findAuthorizables(new org.apache.jackrabbit.api.security.user.Query()
             {
                 public <T> void build(QueryBuilder<T> builder)
                 {
-                    builder.setCondition(builder.
-                            not(builder.eq("@rep:principalName", anonymousValue)));
+                    builder.setCondition(builder.and(builder.neq("rep:principalName", new StringValue("admin")), builder.neq("rep:principalName", new StringValue("anonymous"))));
                     builder.setSortOrder("@rep:principalName", QueryBuilder.Direction.ASCENDING);
                     builder.setSelector(User.class);
                 }
