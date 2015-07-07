@@ -59,7 +59,7 @@ public class DirectoryController
     public ResponseEntity<List<INode>> getDirectoryTree(
             HttpServletRequest request, HttpServletResponse response,
             @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_,
-            @RequestParam(value = "root", required = false, defaultValue = "/") String path)
+            @RequestParam(value = "path", required = false, defaultValue = "/dam:files/") String path)
             throws RepositoryException
     {
         Session session = null;
