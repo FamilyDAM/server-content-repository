@@ -4,7 +4,6 @@
 
 package com.familydam.core.helpers;
 
-import com.familydam.core.FamilyDAMConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -146,6 +145,9 @@ public class PropertyUtil
                 else if( _val instanceof Double  && (!hasProperty || _currentProp.getDouble() != (Double)_val)  ){
                     node_.setProperty(key.toString(), (Double)_val );
                 }
+                else if( _val instanceof Integer  ){
+                    node_.setProperty(key.toString(), new Long((Integer)_val) );
+                }
                 else if( _val instanceof String[]  ){
                     node_.setProperty(key.toString(), (String[])_val );
                 }
@@ -154,7 +156,7 @@ public class PropertyUtil
                         _val = _val.toString();
 
                         if( !hasProperty ||  !_currentProp.getString().equals(_val) ) {
-                            node_.setProperty(key.toString(), (String) _val);
+                            node_.setProperty(key.toString(), _val.toString());
                         }
                     }
                 }

@@ -27,6 +27,8 @@ import java.util.stream.StreamSupport;
 
 /**
  * Created by mnimer on 5/28/15.
+ *
+ * todo: add a method to reset old jobs that are stuck in a processing state (probably because of a server restart)
  */
 @Service
 public class JobQueueServices
@@ -87,7 +89,7 @@ public class JobQueueServices
         try {
             Node jobQueueNode = session.getNode("/" + FamilyDAMConstants.SYSTEM_ROOT + "/" + FamilyDAMConstants.SYSTEM_JOBQUEUE_FOLDER);
 
-            return StreamSupport
+            Stream<Node> nodeStream = StreamSupport
                     .stream(JcrUtils.getChildNodes(jobQueueNode).spliterator(), false)
                     .filter(new Predicate<Node>()
                     {
@@ -107,6 +109,8 @@ public class JobQueueServices
 
                         }
                     });
+
+            return nodeStream;
         }catch( RepositoryException re){
             log.error(re);
         }
@@ -216,5 +220,8 @@ public class JobQueueServices
             log.error(re);
         }
     }
+
+
+
 
 }

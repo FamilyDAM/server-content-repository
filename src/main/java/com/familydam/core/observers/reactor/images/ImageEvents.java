@@ -149,15 +149,15 @@ public class ImageEvents
         Map props = new HashMap();
         props.put("width", 200);
         props.put("height", 200);
-        jobQueueServices.addJob(session_, node, "image.thumbnail", props, 100l);
+        jobQueueServices.addJob(session_, node, "image.thumbnail", props, 80l);
         session_.save();
 
         // parse the EXIF metadata
-        jobQueueServices.addJob(session_, node, "image.metadata", Collections.EMPTY_MAP, 90l);
+        jobQueueServices.addJob(session_, node, "image.metadata", Collections.EMPTY_MAP, 60l);
         session_.save();
 
         // calculate the phash of the image
-        jobQueueServices.addJob(session_, node, "image.phash", Collections.EMPTY_MAP, 80l);
+        jobQueueServices.addJob(session_, node, "image.phash", Collections.EMPTY_MAP, 40l);
         session_.save();
     }
 }

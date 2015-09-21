@@ -6,6 +6,7 @@
 
 [dam:taggable] mixin
 - dam:tags (STRING) multiple
+- dam:people (STRING) multiple
 
 
 [dam:systemfolder] mixin

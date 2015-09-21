@@ -8,7 +8,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>FamilyDAM embedded server</name>
+	<name>FamilyDAM Content Respository</name>
 	<description>The embedded FamilyDAM services and repository</description>
 
 	<parent>

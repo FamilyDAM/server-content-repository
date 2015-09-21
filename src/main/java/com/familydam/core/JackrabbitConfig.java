@@ -21,6 +21,7 @@ import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -77,15 +78,23 @@ public class JackrabbitConfig
     public Integer jcrThreads = 3;
 
     @Value("${jcr.observer.threads}")
-    public Integer jcrObserverThreads = 10;
+    public Integer jcrObserverThreads = 2;
 
     public static String trashPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
     public static String assetsPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
     public static String jobQueuePath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
 
+    Repository repository = null;
+    ContentRepository contentRepository = null;
+
     @Bean
     public Repository jcrRepository()
     {
+        if( repository != null ){
+            return repository;
+        }
+
+
         try {
             ScheduledExecutorService executor = Executors.newScheduledThreadPool(jcrThreads);
             ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(jcrObserverThreads);
@@ -99,7 +108,10 @@ public class JackrabbitConfig
                     .withAsyncIndexing();
 
             // Create repository
-            Repository repository = jcr.createRepository();
+            repository = jcr.createRepository();
+            // get content repository that was previously created with the call above.
+            contentRepository = jcr.createContentRepository();
+
 
             // Using the CND file, make sure all of the required mix-ins have been created.
             registerCustomNodeTypes(repository);
@@ -121,6 +133,12 @@ public class JackrabbitConfig
             ex.printStackTrace(); //todo handle this.
             throw new RuntimeException(ex);
         }
+    }
+
+
+    public ContentRepository getContentRepository()
+    {
+        return contentRepository;
     }
 
 

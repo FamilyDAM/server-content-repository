@@ -9,7 +9,9 @@ import com.familydam.core.dao.UserDao;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.security.TokenHandler;
 import com.familydam.core.services.AuthenticatedHelper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -17,13 +19,17 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
+import org.apache.jackrabbit.value.BooleanValue;
+import org.apache.jackrabbit.value.DateValue;
+import org.apache.jackrabbit.value.DoubleValue;
+import org.apache.jackrabbit.value.LongValue;
 import org.apache.jackrabbit.value.StringValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -44,9 +50,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -120,20 +131,21 @@ public class UserManagerController
             UserManager userManager = ((SessionImpl) session).getUserManager();
 
             final Value anonymousValue = session.getValueFactory().createValue("anonymous");
-            final Value adminValue = session.getValueFactory().createValue("admin");
+            //final Value adminValue = session.getValueFactory().createValue("admin");
 
             Iterator<Authorizable> users = userManager.findAuthorizables(new org.apache.jackrabbit.api.security.user.Query()
             {
                 public <T> void build(QueryBuilder<T> builder)
                 {
-                    builder.setCondition(builder.and(builder.neq("rep:principalName", new StringValue("admin")), builder.neq("rep:principalName", new StringValue("anonymous"))));
+                    builder.setCondition(builder.neq("rep:principalName", new StringValue("anonymous")));
+                        builder.setCondition(builder.and(builder.neq("rep:principalName", new StringValue("admin")), builder.neq("rep:principalName", new StringValue("anonymous"))));
                     builder.setSortOrder("@rep:principalName", QueryBuilder.Direction.ASCENDING);
                     builder.setSelector(User.class);
                 }
             });
 
 
-            Collection<Map> userList = new ArrayList<>();
+            List<Map> userList = new ArrayList<>();
             while (users.hasNext()) {
 
                 Authorizable user = users.next();
@@ -141,6 +153,16 @@ public class UserManagerController
                 Map userMap = new HashMap<>();
                 userMap.put("username", user.getID());
                 userMap.put("path", user.getPath());
+                userMap.put("id", user.getID());
+
+                Iterator<String> names = user.getPropertyNames();
+                while(names.hasNext())
+                {
+                    String _name = names.next();
+                    if( user.getProperty(_name).length == 1) {
+                        userMap.put(_name, user.getProperty(_name)[0].getString());
+                    }
+                }
 
                 Map props = new HashMap<>();
                 //userMap.put("properties", props);
@@ -155,6 +177,15 @@ public class UserManagerController
             }
 
 
+            Collections.sort(userList, new Comparator<Object>()
+            {
+                @Override public int compare(Object o1, Object o2)
+                {
+                    return ((String)((Map)o1).get("username")).compareToIgnoreCase((String)((Map)o2).get("username"));
+                }
+            });
+
+
             return new ResponseEntity<>(userList, HttpStatus.OK);
         }
         finally {
@@ -164,30 +195,52 @@ public class UserManagerController
 
 
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    //@PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<String> createUser(HttpServletRequest request,
+    public ResponseEntity<User> createUser(HttpServletRequest request,
                                              @AuthenticationPrincipal Authentication currentUser_,
                                              @RequestParam("username") String username, 
-                                             @RequestParam("password") String newPassword) throws IOException, LoginException, NoSuchWorkspaceException, AuthorizableExistsException, RepositoryException
+                                             @RequestParam("password") String newPassword,
+                                             @RequestParam("userProps") String userProps
+    ) throws IOException, LoginException, NoSuchWorkspaceException, AuthorizableExistsException, RepositoryException
     {
         Session session = null;
         try{
-            session = authenticatedHelper.getSession(new SimpleCredentials(username, newPassword.toCharArray()));
-            //UserManager userManager = getUserManager(session);
-            //User user = userManager.createUser(username, newPassword);
-            //session.save();
+            session = authenticatedHelper.getAdminSession();
 
-            //return new ResponseEntity<String>(user.getPath(), HttpStatus.CREATED);
-            return new ResponseEntity<String>(HttpStatus.CREATED);
+            UserManager userManager = ((JackrabbitSession) session).getUserManager();
+            User user = userManager.createUser(username, newPassword);
+
+
+            Map _userProps = new ObjectMapper().readValue(userProps, Map.class);
+            for (Object key : _userProps.keySet()) {
+
+                if( _userProps.get(key) instanceof String ) {
+                    user.setProperty(key.toString(), new StringValue((String) _userProps.get(key)));
+                }else if( _userProps.get(key) instanceof Double ) {
+                    user.setProperty(key.toString(), new DoubleValue((Double) _userProps.get(key)));
+                }else if( _userProps.get(key) instanceof Boolean ) {
+                    user.setProperty(key.toString(), new BooleanValue((Boolean) _userProps.get(key)));
+                }else if( _userProps.get(key) instanceof Long ) {
+                    user.setProperty(key.toString(), new LongValue((Long) _userProps.get(key)));
+                }else if( _userProps.get(key) instanceof Date) {
+                    Calendar _cal = Calendar.getInstance();
+                    _cal.setTime(  (Date)_userProps.get(key)  );
+                    user.setProperty(key.toString(), new DateValue( _cal ));
+                }
+            }
+
+            session.save();
+
+            return new ResponseEntity<>(HttpStatus.CREATED);
         }
-        /**
         catch (AuthenticationException ae) {
-            return new ResponseEntity<String>(HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
-        catch (CommitFailedException ae) {
-            return new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }**/
+        catch (Exception ae) {
+            ae.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         finally {
             if( session != null ) session.logout();
         }
@@ -210,7 +263,8 @@ public class UserManagerController
     @RequestMapping(value = "/{username}", method = RequestMethod.GET)
     public ResponseEntity<Map> getUser(HttpServletRequest request, HttpServletResponse response,
                                        @AuthenticationPrincipal Authentication currentUser_,
-                                       @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
+                                       @PathVariable("username") String username
+    ) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try{
@@ -246,21 +300,45 @@ public class UserManagerController
      * @throws LoginException
      * @throws RepositoryException
      */
-    @PreAuthorize("hasRole('ROLE_USER')")
+    //@PreAuthorize("hasRole('ROLE_USER')")
     @RequestMapping(value = "/{username}", method = RequestMethod.POST)
     public ResponseEntity<Map> updateUser(HttpServletRequest request, HttpServletResponse response,
                                           @AuthenticationPrincipal Authentication currentUser_,
-                                          @PathVariable("username") String username) throws IOException, LoginException, RepositoryException
+                                          @PathVariable("username") String username,
+                                          @RequestParam(value = "password", required = false) String newPassword,
+                                          @RequestParam("userProps") String userProps
+    ) throws IOException, LoginException, RepositoryException
     {
         Session session = null;
         try {
-            session = authenticatedHelper.getSession(currentUser_);
-            //UserManager userManager = getUserManager(session);
-            //Authorizable user = userManager.getAuthorizable(username);
+            session = authenticatedHelper.getAdminSession();
+
+            UserManager userManager = ((JackrabbitSession) session).getUserManager();
+            Authorizable user = userManager.getAuthorizable(username);
 
             //NodeUtil userNode = new NodeUtil(session.getLatestRoot().getTree(user.getPath()));
             //PropertyUtil.writeParametersToNode(userNode, request.getParameterMap());
 
+            Map props = new ObjectMapper().readValue(userProps, Map.class);
+            for (Object key : props.keySet()) {
+
+                Object _val = props.get(key);
+                if( _val instanceof String ) {
+                    user.setProperty((String)key, new StringValue((String)_val));
+                }else if( _val instanceof Boolean) {
+                    user.setProperty((String)key, new BooleanValue((Boolean)_val));
+                }else if( _val instanceof Long ) {
+                    user.setProperty((String)key, new LongValue((Long)_val));
+                }else if( _val instanceof Date ) {
+                    Calendar _cal = Calendar.getInstance();
+                    _cal.setTime((Date)_val);
+                    user.setProperty((String)key, new DateValue(_cal));
+                }else if( _val instanceof Double ) {
+                    user.setProperty((String)key, new DoubleValue((Double)_val));
+                }
+            }
+
+            session.save();
 
             return new ResponseEntity<Map>(HttpStatus.OK);
         } catch (AuthenticationException ae) {

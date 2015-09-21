@@ -66,14 +66,18 @@ public class ImageJobRunner
                         @Override public int compare(Node o1, Node o2)
                         {
                             try {
-                                Long weight1 = o1.getProperty("weight").getLong();
-                                Long weight2 = o2.getProperty("weight").getLong();
-                                if (weight1 == weight2) {
-                                    return 0;
-                                } else if (weight1 > weight2) {
+                                if (o1.hasProperty("weight") && o1.hasProperty("weight")) {
+                                    long weight1 = o1.getProperty("weight").getLong();
+                                    long weight2 = o2.getProperty("weight").getLong();
+                                    if (weight1 == weight2) {
+                                        return 0;
+                                    } else if (weight1 > weight2) {
+                                        return -1;
+                                    }
+                                    return 1;
+                                } else {
                                     return -1;
                                 }
-                                return 1;
                             }
                             catch (Exception ex) {
                                 return -1;
