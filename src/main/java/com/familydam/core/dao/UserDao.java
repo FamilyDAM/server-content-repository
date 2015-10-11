@@ -6,8 +6,11 @@ package com.familydam.core.dao;
 
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.services.AuthenticatedHelper;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +19,14 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
 import javax.security.sasl.AuthenticationException;
 import java.util.Collection;
 
@@ -142,6 +149,40 @@ public class UserDao
                 session.logout();
             }
         }
+    }
+
+
+
+
+    public void createUserDirectories(Session session_, User user_) throws RepositoryException
+    {
+        //find system folder (parent folders)
+        QueryManager queryManager = session_.getWorkspace().getQueryManager();
+
+        // find all DAM Content Folders, we'll add a user folder to each one
+        Query query = queryManager.createQuery("SELECT * FROM [dam:contentfolder] AS s", "sql");
+
+        // Execute the query and get the results ...
+        QueryResult result = query.execute();
+
+        javax.jcr.NodeIterator nodeItr = result.getNodes();
+        while ( nodeItr.hasNext() ) {
+            javax.jcr.Node node = nodeItr.nextNode();
+
+            if( !node.getPath().equals("/") ) {
+
+                Node _node = JcrUtils.getOrAddFolder(node, user_.getID());
+                _node.addMixin("mix:created");
+                _node.addMixin("dam:userfolder");
+                _node.addMixin("dam:extensible");
+                _node.setProperty(JcrConstants.JCR_NAME, user_.getID());
+
+            }
+        }
+
+
+        // commit new folders.
+        session_.save();
     }
 
 }

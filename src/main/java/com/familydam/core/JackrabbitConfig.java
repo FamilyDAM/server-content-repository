@@ -8,8 +8,6 @@ import com.familydam.core.observers.FileNodeObserver;
 import com.familydam.core.plugins.CommitDAMHook;
 import com.familydam.core.plugins.InitialDAMContent;
 import com.familydam.core.security.SecurityProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -118,9 +116,6 @@ public class JackrabbitConfig
 
             // register the default system directories
             registerSystemDirectories(repository);
-
-            // create the user object
-            createCustomUsers(repository);
 
             // add users if the start up argument was passed in
             createCustomUserFolders(repository);
@@ -377,57 +372,6 @@ public class JackrabbitConfig
     }
 
 
-    private void createCustomUsers(Repository repository)
-    {
-        Session session = null;
-        try {
-            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-            session = repository.login(credentials);
-            UserManager userManager = ((JackrabbitSession) session).getUserManager();
-
-
-            File settingsFile = new File("./systemprops.properties");
-            if( settingsFile.exists() )
-            {
-                try {
-                    String _settings = FileUtils.readFileToString(settingsFile);
-
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    Map _settingProps = objectMapper.readValue(_settings, Map.class);
-
-                    if( _settingProps.get("users") != null ){
-                        List<Map> users = (List<Map>)_settingProps.get("users");
-
-                        for (Map user : users) {
-
-
-                            String p = user.get("password").toString();
-                            String fName = user.get("firstName").toString();
-                            String lName = user.get("lastName").toString();
-
-                            Authorizable authorizable = userManager.getAuthorizable(fName);
-                            if( authorizable == null ) {
-                                User _user = userManager.createUser(fName, p);
-                                _user.setProperty("firstName", new StringValue(fName));
-                                _user.setProperty("lastName", new StringValue(lName));
-                            }
-
-                        }
-                    }
-
-                    session.save();
-
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }catch(Exception ex){
-            ex.printStackTrace();
-        }finally {
-            if( session != null) session.logout();
-        }
-    }
 
 
 

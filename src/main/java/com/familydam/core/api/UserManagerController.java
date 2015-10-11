@@ -18,7 +18,6 @@ import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.apache.jackrabbit.value.BooleanValue;
 import org.apache.jackrabbit.value.DateValue;
 import org.apache.jackrabbit.value.DoubleValue;
@@ -128,7 +127,7 @@ public class UserManagerController
         try {
             session = authenticatedHelper.getAdminSession();
 
-            UserManager userManager = ((SessionImpl) session).getUserManager();
+            UserManager userManager = ((JackrabbitSession) session).getUserManager();
 
             final Value anonymousValue = session.getValueFactory().createValue("anonymous");
             //final Value adminValue = session.getValueFactory().createValue("admin");
@@ -231,6 +230,12 @@ public class UserManagerController
             }
 
             session.save();
+
+            // now create a new session for the new users.
+            //Session userSession = authenticatedHelper.getSession(new SimpleCredentials(user.getID(), newPassword.toCharArray()));
+            // create all of the users folders, using their session.
+            userDao.createUserDirectories(session, user);
+
 
             return new ResponseEntity<>(HttpStatus.CREATED);
         }
