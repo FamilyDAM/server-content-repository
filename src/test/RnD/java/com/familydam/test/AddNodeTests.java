@@ -98,7 +98,7 @@ public class AddNodeTests
         Iterable<Node> nodes = JcrUtils.getChildNodes(rootNode);
         for (Node node : nodes) {
             if( node.isNodeType("mix:referenceable") ) {
-                System.out.println(node.getName() + " | " + node.getUUID() + " | " + node.getPath());
+                System.out.println(node.getName() + " | " + node.getIdentifier() + " | " + node.getPath());
             }else{
                 System.out.println(node.getName() + " | " + node.getPath());
             }
@@ -106,7 +106,7 @@ public class AddNodeTests
             Iterable<Node> nodes2 = JcrUtils.getChildNodes(node);
             for (Node node2 : nodes2) {
                 if( node2.isNodeType("mix:referenceable") ) {
-                    System.out.println("---" + node2.getName() + " | " + node2.getUUID() + " | " + node2.getPath());
+                    System.out.println("---" + node2.getName() + " | " + node2.getIdentifier() + " | " + node2.getPath());
                 }else {
                     System.out.println("---" + node2.getName()  + " | " + node2.getPath());
                 }
@@ -184,7 +184,7 @@ public class AddNodeTests
 
 
             //Node img1 = JcrUtils.putFile(rootNode, "file1", "image/png", is1);
-            System.out.println(fileNode.getName() +" | " +fileNode.getUUID() +" | " +fileNode.getPath());
+            System.out.println(fileNode.getName() +" | " +fileNode.getIdentifier() +" | " +fileNode.getPath());
         }
 
         session.save();
@@ -209,7 +209,7 @@ public class AddNodeTests
 
             //Node img1 = JcrUtils.putFile(rootNode, "file1", "image/png", is1);
             if( fileNode.hasNode("mix:referenceable") ) {
-                System.out.println(fileNode.getName() + " | " + fileNode.getUUID() + " | " + fileNode.getPath());
+                System.out.println(fileNode.getName() + " | " + fileNode.getIdentifier() + " | " + fileNode.getPath());
             }else{
                 System.out.println(fileNode.getName()  + " | " + fileNode.getPath());
             }

@@ -53,7 +53,7 @@ import java.util.Map;
  * Created by mnimer on 9/16/14.
  */
 @Controller
-public class NodeController
+public class NodeDaoController
 {
     @Autowired
     private AuthenticatedHelper authenticatedHelper;
