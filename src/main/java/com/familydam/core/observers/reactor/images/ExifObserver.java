@@ -9,6 +9,7 @@ import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.Tag;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import com.familydam.core.FamilyDAMConstants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,7 +22,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 
 /**
  * Created by mnimer on 12/23/14.
@@ -31,6 +34,7 @@ public class ExifObserver
 {
     private Log log = LogFactory.getLog(this.getClass());
 
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");
 
 
     public void execute(Session session, Node node) throws RepositoryException
@@ -67,6 +71,17 @@ public class ExifObserver
                                 prop.setProperty("description", desc);
                                 prop.setProperty("type", tagType);
                                 prop.setProperty("typeHex", tagTypeHex);
+                            }
+                        }
+
+
+                        // Extract Image Date Stamp, and save to root
+                        Date metadataDate = metadata.getDirectory(ExifIFD0Directory.class).getDate(306);
+                        if( metadataDate != null ){
+                            Date date = metadataDate;
+                            if( date != null ){
+                                String dateCreated = dateFormat.format(date);
+                                node.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateCreated);
                             }
                         }
 

@@ -173,7 +173,8 @@ public class JackrabbitConfig
 
     private FileStore fileStore() throws IOException
     {
-        File repoDir = new File("./familydam-repo");
+        //File repoDir = new File("./familydam-repo");
+        File repoDir = new File("./server-content-repository/familydam-repo");
         File blobStoreDir = new File(repoDir.getPath() +"/blobstore");
         /**
          ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
@@ -255,6 +256,7 @@ public class JackrabbitConfig
         try {
             session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
             InputStream is = this.getClass().getClassLoader().getResourceAsStream("familydam_nodetypes.cnd");
+
             // Get the JackrabbitNodeTypeManager from the Workspace.
             // Note that it must be cast from the generic JCR NodeTypeManager to the
             // Jackrabbit-specific implementation.

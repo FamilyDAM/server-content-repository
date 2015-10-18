@@ -23,6 +23,7 @@ public class FamilyDAMConstants
     public static final String DAM_IMAGE = "dam:image";
     public static final String DAM_MUSIC = "dam:music";
     public static final String DAM_VIDEO = "dam:video";
+    public static final String DAM_DATECREATED = "dam:datecreated";
 
     //Node props
     public static final String CHILDREN = "children";

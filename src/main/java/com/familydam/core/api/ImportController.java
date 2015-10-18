@@ -29,9 +29,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.naming.AuthenticationException;
 import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -43,10 +43,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.Arrays;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * A number of useful messages to handle importing new files into the JCR
@@ -64,6 +64,7 @@ public class ImportController
     @Autowired
     private ImageRenditionsService imageRenditionsService;
 
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");
 
     //@PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/info")
@@ -150,11 +151,20 @@ public class ImportController
 
                     // Upload the FILE
                     Node fileNode = JcrUtils.putFile(copyToDir, _fileName, mimeType, new BufferedInputStream(_file));
+                    fileNode.addMixin("dam:extensible");
                     //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
+
+
+                    // Set a DAM specific date (as as tring so it's easy to parse later)
+                    Property createdDate = fileNode.getProperty(JcrConstants.JCR_CREATED);
+                    Calendar dateStamp = Calendar.getInstance();
+                    if( createdDate == null ) {
+                        dateStamp = createdDate.getDate();
+                    }
+                    fileNode.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateFormat.format(dateStamp.getTime()));
 
                     // save the primary file.
                     session.save();
-
 
                     // return a path to the new file, in the location header
                     MultiValueMap headers = new HttpHeaders();

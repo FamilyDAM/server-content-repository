@@ -255,6 +255,9 @@
         </resources>
         <testResources>
             <testResource>
+                <directory>./src/main/resources</directory>
+            </testResource>
+            <testResource>
                 <directory>./src/test/resources</directory>
             </testResource>
         </testResources>

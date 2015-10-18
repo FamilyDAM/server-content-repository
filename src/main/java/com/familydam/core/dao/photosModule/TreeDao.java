@@ -4,23 +4,20 @@
 
 package com.familydam.core.dao.photosModule;
 
+import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.exceptions.UnknownINodeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Component;
 
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
-import java.text.DateFormat;
-import java.text.ParseException;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,41 +42,43 @@ public class TreeDao
      */
     public Map dateTree(Session session) throws RepositoryException, UnknownINodeException
     {
-        StringBuffer sql = new StringBuffer("SELECT * FROM [dam:image]");
+        StringBuffer sql = new StringBuffer("SELECT [" + FamilyDAMConstants.DAM_DATECREATED +"]  FROM [dam:image] where [" +FamilyDAMConstants.DAM_DATECREATED +"] is not null");
 
 
         QueryManager queryManager = session.getWorkspace().getQueryManager();
         //Query query = queryManager.createQuery(sql, "JCR-SQL2");
         Query query = queryManager.createQuery(sql.toString(), Query.JCR_SQL2);
-
+//
         // Execute the query and get the results ...
         QueryResult result = query.execute();
 
 
         // Iterate over the nodes in the results ...
         Map<String, Map> _nodeMap = new HashMap<>();
-        javax.jcr.NodeIterator nodeItr = result.getNodes();
+        RowIterator nodeItr = result.getRows();
         while ( nodeItr.hasNext() ) {
-            javax.jcr.Node node = nodeItr.nextNode();
+            Row row = nodeItr.nextRow();
 
-            Calendar jcrDate = node.getProperty("jcr:created").getDate();
-
-            Date date = jcrDate.getTime();
+            String date = row.getValue(FamilyDAMConstants.DAM_DATECREATED).getString();
+            String[] dateParts = date.split("-");
+            /**
             try {
-                Node dateNode = node.getNode("dam:metadata/IPTC/Date_Created");
+                Value dateNode = row.getValue("Date_Created");
                 if (dateNode != null) {
-                    date = DateFormat.getDateInstance().parse(dateNode.getProperty("description").getString());
+                    //date = DateFormat.getDateInstance().parse(dateNode.getProperty("description").getString());
                 }
             }
-            catch (ParseException|PathNotFoundException pe) {
+            catch (Exception pe) {
                 //swallow and use jcrDate instead
             }
+             **/
 
 
 
-            String year = dfYear.format(date);
-            String month = dfMonth.format(date);
-            String day = dfDay.format(date);
+            String year = dateParts[0];
+            String monthName = dateParts[1];
+            String monthNumber = dateParts[1];
+            String day = dateParts[2];
 
             Map yearMap = _nodeMap.get(year);
             if( yearMap == null){
@@ -91,31 +90,32 @@ public class TreeDao
             }
 
 
-            Map monthMap = (Map)((Map)_nodeMap.get(year).get("children")).get(month);
+            Map monthMap = (Map)((Map)_nodeMap.get(year).get("children")).get(monthName);
             if( monthMap == null){
+
                 monthMap = new HashMap();
-                monthMap.put("label", month);
+                monthMap.put("label", monthName);
                 monthMap.put("year", year);
-                monthMap.put("month", dfMonth2.format(date));
+                monthMap.put("month", monthNumber);
                 monthMap.put("children", new HashMap());
 
-                ((Map)_nodeMap.get(year).get("children")).put(month, monthMap);
+                ((Map)_nodeMap.get(year).get("children")).put(monthNumber, monthMap);
 
             }
 
-            Map dayMap = (Map)((Map)((Map)((Map)_nodeMap.get(year).get("children")).get(month)).get("children")).get(day);
+            Map dayMap = (Map)((Map)((Map)((Map)_nodeMap.get(year).get("children")).get(monthNumber)).get("children")).get(day);
             if( dayMap == null){
                 dayMap = new HashMap();
                 dayMap.put("label", day);
                 dayMap.put("year", year);
-                dayMap.put("month", dfMonth2.format(date));
+                dayMap.put("month", date);
                 dayMap.put("day", day);
                 dayMap.put("children", new HashMap());
 
-                ((Map)((Map)((Map)_nodeMap.get(year).get("children")).get(month)).get("children")).put(day, dayMap);
+                ((Map)((Map)((Map)_nodeMap.get(year).get("children")).get(monthNumber)).get("children")).put(day, dayMap);
             }
 
-            log.debug(node);
+            log.debug(row);
         }
 
         return _nodeMap;

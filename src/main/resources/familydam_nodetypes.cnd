@@ -15,16 +15,20 @@
 
 
 [dam:file] mixin
+- dam:datecreated (STRING)
 
 [dam:image] mixin
+- dam:datecreated (STRING)
 + dam:metadata (nt:unstructured)
 + dam:renditions (nt:folder)
 
 
 [dam:music] mixin
+- dam:datecreated (STRING)
 + dam:metadata (nt:unstructured)
 
 
 [dam:video] mixin
+- dam:datecreated (STRING)
 + dam:metadata (nt:unstructured)
 
