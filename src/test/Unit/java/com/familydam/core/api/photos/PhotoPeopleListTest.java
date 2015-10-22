@@ -19,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import javax.jcr.Session;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,9 +27,9 @@ import java.util.Map;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = FamilyDAM.class)
-public class PhotoDateTreeTest
+public class PhotoPeopleListTest
 {
-    Logger logger = LoggerFactory.getLogger(PhotoDateTreeTest.class);
+    Logger logger = LoggerFactory.getLogger(PhotoPeopleListTest.class);
 
     @Autowired
     private AuthenticatedHelper authenticatedHelper;
@@ -44,12 +45,13 @@ public class PhotoDateTreeTest
 
 
     @Test
-    public void checkDateTree() throws Exception
+    public void checkPeopleList() throws Exception
     {
         Session session = authenticatedHelper.getAdminSession();
-        Map tree = treeDao.dateTree(session);
+        List<Map> tree = treeDao.peopleList(session);
 
-        Assert.assertTrue(tree.keySet().size() > 0);
+        Assert.assertTrue(tree.size() > 0);
+        //logger.debug(tree.toString());
     }
 
 }

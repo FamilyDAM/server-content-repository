@@ -78,6 +78,9 @@ public class JackrabbitConfig
     @Value("${jcr.observer.threads}")
     public Integer jcrObserverThreads = 2;
 
+    @Value("${jcr.repo.location}")
+    String repoLocation;
+
     public static String trashPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
     public static String assetsPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
     public static String jobQueuePath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
@@ -169,26 +172,12 @@ public class JackrabbitConfig
         }
     }
 
-
-
     private FileStore fileStore() throws IOException
     {
-        //File repoDir = new File("./familydam-repo");
-        File repoDir = new File("./server-content-repository/familydam-repo");
+        File repoDir = new File(repoLocation);
         File blobStoreDir = new File(repoDir.getPath() +"/blobstore");
-        /**
-         ScheduledExecutorService observerExecutor = Executors.newScheduledThreadPool(10);
-         FileDataStore fileDataStore = new FileDataStore();
-         fileDataStore.setMinRecordLength(100);
-         fileDataStore.setPath(repoDir.getAbsolutePath());
-         DataStoreBlobStore dataStoreBlobStore = new DataStoreBlobStore(fileDataStore);
-         **/
-
 
         FileBlobStore fileBlobStore = new FileBlobStore(blobStoreDir.getAbsolutePath());
-        //int maxFileSize = (1024 * 1024) * 10; //1gig
-        //FileStore source = new FileStore(fileBlobStore, repoDir, 100, true);
-        //FileStore source = new FileStore(repoDir, maxFileSize, false);
 
         FileStore source = FileStore
                 .newFileStore(repoDir)

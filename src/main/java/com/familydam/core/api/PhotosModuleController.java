@@ -19,6 +19,7 @@ import javax.jcr.Session;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,70 @@ public class PhotosModuleController
             session = authenticatedHelper.getSession(currentUser_);
 
             Map tree = treeDao.dateTree(session);
+
+            return new ResponseEntity<>(tree, HttpStatus.OK);
+        }
+        catch (AuthenticationException ae) {
+            ae.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        catch (Exception ae) {
+            ae.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
+    }
+
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @RequestMapping(value = "/list/tags", method = RequestMethod.GET)
+    public ResponseEntity<List<Map>> getTagList(HttpServletRequest request,
+                                   HttpServletResponse response,
+                                    Authentication currentUser_)
+    {
+
+        Session session = null;
+        try {
+            session = authenticatedHelper.getSession(currentUser_);
+
+            List<Map> tree = treeDao.tagList(session);
+
+            return new ResponseEntity<>(tree, HttpStatus.OK);
+        }
+        catch (AuthenticationException ae) {
+            ae.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        catch (Exception ae) {
+            ae.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
+    }
+
+
+
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @RequestMapping(value = "/list/people", method = RequestMethod.GET)
+    public ResponseEntity<List<Map>> getPeopleList(HttpServletRequest request,
+                                   HttpServletResponse response,
+                                    Authentication currentUser_)
+    {
+
+        Session session = null;
+        try {
+            session = authenticatedHelper.getSession(currentUser_);
+
+            List<Map> tree = treeDao.peopleList(session);
 
             return new ResponseEntity<>(tree, HttpStatus.OK);
         }
