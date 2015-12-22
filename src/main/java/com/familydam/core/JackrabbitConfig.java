@@ -455,6 +455,26 @@ public class JackrabbitConfig
         //bean.addInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER, "Basic realm=\"Oak\"");
 
         return bean;
+
+        /** example code
+         *
+         *
+         final Repository jcrRepository = jcr.createRepository();
+         @SuppressWarnings("serial")
+         ServletHolder webdav = new ServletHolder(new SimpleWebdavServlet() {
+         @Override
+         public Repository getRepository() {
+         return jcrRepository;
+         }
+         });
+         webdav.setInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX
+         , path + "/webdav");
+         webdav.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADE
+         R, "Basic realm=\"Oak\"");
+         context.addServlet(webdav, path + "/webdav/*");
+         *
+         *
+         */
     }
 
 
