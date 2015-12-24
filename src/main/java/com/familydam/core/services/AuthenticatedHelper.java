@@ -5,12 +5,10 @@
 package com.familydam.core.services;
 
 import com.familydam.core.FamilyDAM;
-import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.security.UserAuthentication;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -23,7 +21,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import javax.jcr.Credentials;
-import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -46,31 +43,6 @@ public class AuthenticatedHelper
     @Autowired private Repository repository;
 
     private SecurityProvider securityProvider;
-
-
-    /**
-     * Return the content root
-     * @param session
-     * @return
-     * @throws RepositoryException
-     */
-    public Node getContentRoot(Session session) throws RepositoryException
-    {
-        Node root = session.getRootNode();
-        return root.getNode(FamilyDAMConstants.CONTENT_ROOT);
-    }
-
-
-
-
-    public SecurityProvider getSecurityProvider()
-    {
-        if (securityProvider == null) {
-            securityProvider = new SecurityProviderImpl(ConfigurationParameters.EMPTY);
-        }
-        return securityProvider;
-    }
-
 
 
     /**

@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -65,7 +66,7 @@ public class DirectoryController
         Session session = null;
         try {
             session = authenticatedHelper.getSession(currentUser_);
-            Node root = session.getRootNode();
+            //Node root = session.getRootNode();
             Node contentRoot = session.getNode(path);
 
             List<INode> nodes = walkDirectoryTree(contentRoot);
@@ -109,7 +110,7 @@ public class DirectoryController
         Session session = null;
         try {
             session = authenticatedHelper.getSession(currentUser_);
-            Node root = session.getRootNode();
+            //Node root = session.getRootNode();
             Node contentRoot = session.getNode(path);
 
 
@@ -144,6 +145,9 @@ public class DirectoryController
         }
         catch (ItemExistsException ae) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
+        }
+        catch (AccessDeniedException ae) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
         catch (Exception ae) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -182,7 +186,7 @@ public class DirectoryController
         String path = formData.get("path").get(0);
         try {
             session = authenticatedHelper.getSession(currentUser_);
-            Node root = session.getRootNode();
+            //Node root = session.getRootNode();
             Node contentRoot = session.getNode(path);
 
             // todo make sure it's not the system folder / content root

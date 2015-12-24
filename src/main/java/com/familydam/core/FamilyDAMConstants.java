@@ -9,6 +9,10 @@ package com.familydam.core;
  */
 public class FamilyDAMConstants
 {
+    // Security Groups
+    public static final String FAMILY_ADMIN_GROUP = "family_admin_group";
+    public static final String FAMILY_GROUP = "family_group";
+
     // paths
     public static final String CONTENT_ROOT = "dam:files";
     public static final String CLOUD_ROOT = "dam:cloud";

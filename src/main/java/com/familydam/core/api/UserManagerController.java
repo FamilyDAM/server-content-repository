@@ -10,14 +10,17 @@ import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.security.TokenHandler;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.value.BooleanValue;
 import org.apache.jackrabbit.value.DateValue;
 import org.apache.jackrabbit.value.DoubleValue;
@@ -66,10 +69,12 @@ import java.util.Map;
 @RequestMapping("/api/users")
 public class UserManagerController
 {
+    @Reference
+    private AuthorizationConfiguration authorizationConfiguration;
+
     @Autowired
     private AuthenticatedHelper authenticatedHelper;
 
-    
     @Autowired private Repository repository;
     @Autowired private UserDao userDao;
     @Autowired private TokenHandler tokenHandler;
@@ -209,6 +214,15 @@ public class UserManagerController
 
             UserManager userManager = ((JackrabbitSession) session).getUserManager();
             User user = userManager.createUser(username, newPassword);
+
+            Group familyGroup = (Group)userManager.getAuthorizable(FamilyDAMConstants.FAMILY_GROUP);
+            // if this family group is empty and this is the first user, make them an admin
+            if( !familyGroup.getMembers().hasNext() ) {
+                Group familyAdminGroup = (Group)userManager.getAuthorizable(FamilyDAMConstants.FAMILY_ADMIN_GROUP);
+                familyAdminGroup.addMember(user);
+            }
+            //now add the user to the family group
+            familyGroup.addMember(user);
 
 
             Map _userProps = new ObjectMapper().readValue(userProps, Map.class);

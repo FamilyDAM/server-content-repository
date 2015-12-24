@@ -116,13 +116,14 @@ public class ImportController
             // FIND the path
             String _path = request.getParameter("path");
 
-            Node root = session.getNode("/");
             String dirPath = _path.replace("~", FamilyDAMConstants.CONTENT_ROOT);
             if (!dirPath.startsWith("/" + FamilyDAMConstants.CONTENT_ROOT)) {
                 dirPath = "/" + FamilyDAMConstants.CONTENT_ROOT + dirPath;
             }
 
-            Node copyToDir = JcrUtils.getOrCreateByPath(dirPath, JcrConstants.NT_FOLDER, session);
+            Node _contentRoot = session.getNode("/" +FamilyDAMConstants.CONTENT_ROOT);
+            String _relativePath = dirPath.replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "");
+            Node copyToDir = JcrUtils.getOrCreateByPath(_contentRoot, _relativePath, false, JcrConstants.NT_FOLDER, JcrConstants.NT_FOLDER, true);
 
 
             for (Part part : request.getParts()) {
@@ -252,12 +253,17 @@ public class ImportController
     /**
      * Recursively copy all files under a folder
      *
-     * @param request
-     * @param response
-     * @param dir
+     * @param session
+     * @param currentUser_
+     * @param folder
+     * @param parent
+     * @param recursive
      * @return
      * @throws LoginException
      * @throws NoSuchWorkspaceException
+     * @throws javax.security.sasl.AuthenticationException
+     * @throws IOException
+     * @throws RepositoryException
      */
     private ResponseEntity<Object> copyLocalFolder(
             Session session,
@@ -293,13 +299,16 @@ public class ImportController
     /**
      * Copy a single file
      *
-     * @param request
-     * @param response
-     * @param dir
-     * @param path
+     * @param session
+     * @param currentUser_
+     * @param file
+     * @param parent
      * @return
      * @throws LoginException
      * @throws NoSuchWorkspaceException
+     * @throws javax.security.sasl.AuthenticationException
+     * @throws IOException
+     * @throws RepositoryException
      */
     private ResponseEntity<Object> copyLocalFile(
             Session session,

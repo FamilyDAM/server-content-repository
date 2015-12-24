@@ -93,7 +93,6 @@ public class FileController
         Session session = null;
         try {
             session = authenticatedHelper.getSession(currentUser_);
-            Node root = session.getRootNode();
             Node contentRoot = session.getNode(path);
 
 
@@ -101,7 +100,10 @@ public class FileController
             List<INode> childNodes = new ArrayList<>();
             
             for (Node node : _childNodes) {
-                childNodes.add(NodeMapper.map(node));
+                if( node.getPrimaryNodeType().getName().equals(JcrConstants.NT_FOLDER)
+                    || node.getPrimaryNodeType().getName().equals(JcrConstants.NT_FILE) ) {
+                    childNodes.add(NodeMapper.map(node));
+                }
             }
 
             Collections.sort(childNodes, new Comparator<INode>()

@@ -4,13 +4,18 @@
 
 package com.familydam.core.dao;
 
+import com.familydam.core.FamilyDAM;
+import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.services.AuthenticatedHelper;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +24,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -27,6 +33,7 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import javax.jcr.security.Privilege;
 import javax.security.sasl.AuthenticationException;
 import java.util.Collection;
 
@@ -39,6 +46,16 @@ public class UserDao
 
     @Autowired private Repository repository;
     @Autowired private AuthenticatedHelper authenticatedHelper;
+
+    private UserManager adminUserManager;
+
+    @PostConstruct
+    private void initUserManager() throws RepositoryException
+    {
+        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+        Session session = (SessionImpl) repository.login(credentials);
+        adminUserManager = (((SessionImpl) session).getUserManager());
+    }
 
 
     public CustomUserDetails getUser(String username_, String password_) throws UsernameNotFoundException
@@ -54,8 +71,7 @@ public class UserDao
             //todo: add "admin" filter, so it's not allowed.
             session = repository.login(credentials, null);
 
-            UserManager userManager = (((SessionImpl) session).getUserManager());
-            Authorizable authorizable = userManager.getAuthorizable(session.getUserID());
+            Authorizable authorizable = adminUserManager.getAuthorizable(session.getUserID());
 
             _user = new CustomUserDetails();
             _user.setCredentials(credentials);
@@ -154,8 +170,12 @@ public class UserDao
 
 
 
-    public void createUserDirectories(Session session_, User user_) throws RepositoryException
+    public void createUserDirectories(Session session_, User user_) throws RepositoryException, AuthenticationException
     {
+        UserManager userManager = ((JackrabbitSession) session_).getUserManager();
+        Group familyGroup = (Group)userManager.getAuthorizable(FamilyDAMConstants.FAMILY_GROUP);
+
+
         //find system folder (parent folders)
         QueryManager queryManager = session_.getWorkspace().getQueryManager();
 
@@ -176,7 +196,9 @@ public class UserDao
                 _node.addMixin("dam:userfolder");
                 _node.addMixin("dam:extensible");
                 _node.setProperty(JcrConstants.JCR_NAME, user_.getID());
+                session_.save();
 
+                AccessControlUtils.addAccessControlEntry(session_, _node.getPath(), user_.getPrincipal(), new String[]{Privilege.JCR_ALL}, true);
             }
         }
 

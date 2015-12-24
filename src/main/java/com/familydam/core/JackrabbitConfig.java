@@ -38,7 +38,6 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
@@ -68,7 +67,7 @@ import java.util.concurrent.ScheduledExecutorService;
 /**
  * Created by mnimer on 12/11/14.
  */
-@Configuration
+//@Configuration
 public class JackrabbitConfig
 {
 
@@ -78,7 +77,7 @@ public class JackrabbitConfig
     @Value("${jcr.observer.threads}")
     public Integer jcrObserverThreads = 2;
 
-    @Value("${jcr.repo.location}")
+    //@Value("${jcr.repo.location}")
     String repoLocation;
 
     public static String trashPath = "/" +FamilyDAMConstants.SYSTEM_ROOT;
