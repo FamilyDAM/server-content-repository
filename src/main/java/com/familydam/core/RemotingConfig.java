@@ -52,7 +52,7 @@ public class RemotingConfig
             }
         }, "/repository/*");
 
-        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/repository");
+        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/repository/default/dam:files");
         bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_CONFIG, "remoting/webdav-config.xml");
         return bean;
     }

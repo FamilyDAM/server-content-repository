@@ -19,8 +19,6 @@ import java.io.IOException;
 @SpringBootApplication
 public class FamilyDAM extends WebMvcConfigurerAdapter
 {
-
-
     public static String mode = "desktop";
     public static String adminUserId = "admin";
     public static String adminPassword = "admin";

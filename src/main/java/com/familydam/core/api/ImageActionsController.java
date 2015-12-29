@@ -13,6 +13,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.Reactor;
 
+import javax.annotation.PostConstruct;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -42,11 +44,18 @@ public class ImageActionsController
 {
     private Log log = LogFactory.getLog(this.getClass());
 
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
 
     @Autowired private Reactor reactor;
     @Autowired private ImageRenditionsService imageRenditionsService;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
 
 
     /**

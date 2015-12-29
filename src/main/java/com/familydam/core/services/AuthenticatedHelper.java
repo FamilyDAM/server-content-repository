@@ -10,7 +10,6 @@ import com.familydam.core.security.UserAuthentication;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Base64;
@@ -41,8 +40,6 @@ public class AuthenticatedHelper
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired private Repository repository;
-
-    private SecurityProvider securityProvider;
 
 
     /**

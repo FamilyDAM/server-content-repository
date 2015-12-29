@@ -15,6 +15,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.util.Text;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.annotation.PostConstruct;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -57,8 +59,15 @@ import java.util.Map;
 @RequestMapping("/api/import")
 public class ImportController
 {
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
 
 
     @Autowired
@@ -153,6 +162,9 @@ public class ImportController
                     // Upload the FILE
                     Node fileNode = JcrUtils.putFile(copyToDir, _fileName, mimeType, new BufferedInputStream(_file));
                     fileNode.addMixin("dam:extensible");
+                    fileNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
+                    //fileNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+
                     //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
 
 
@@ -169,7 +181,7 @@ public class ImportController
 
                     // return a path to the new file, in the location header
                     MultiValueMap headers = new HttpHeaders();
-                    headers.add("location", fileNode.getPath().replace("/" + FamilyDAMConstants.CONTENT_ROOT + "/", "/~/")); // return
+                    headers.add("location", fileNode.getPath()); // return
 
                     //Node _newNode = session.getNodeByIdentifier(fileNode.getIdentifier());
                     return new ResponseEntity<>(headers, HttpStatus.CREATED); //HttpStatus.CREATED

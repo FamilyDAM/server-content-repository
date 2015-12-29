@@ -15,6 +15,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import reactor.core.Reactor;
 import reactor.event.Event;
 
+import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
@@ -55,8 +57,15 @@ import java.util.Map;
 @Controller
 public class NodeDaoController
 {
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
 
 
     Logger logger = LoggerFactory.getLogger(this.getClass());

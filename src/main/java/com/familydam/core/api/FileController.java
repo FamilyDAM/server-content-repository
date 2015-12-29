@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.Reactor;
 
+import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
@@ -66,11 +68,17 @@ public class FileController
 {
     private Log log = LogFactory.getLog(this.getClass());
 
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
-
     @Autowired private Reactor reactor;
     @Autowired private ImageRenditionsService imageRenditionsService;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
 
 
     /**

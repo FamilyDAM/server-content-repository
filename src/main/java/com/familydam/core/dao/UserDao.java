@@ -185,6 +185,7 @@ public class UserDao
         // Execute the query and get the results ...
         QueryResult result = query.execute();
 
+
         javax.jcr.NodeIterator nodeItr = result.getNodes();
         while ( nodeItr.hasNext() ) {
             javax.jcr.Node node = nodeItr.nextNode();

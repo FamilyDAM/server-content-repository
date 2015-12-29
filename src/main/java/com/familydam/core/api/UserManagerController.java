@@ -27,6 +27,7 @@ import org.apache.jackrabbit.value.DoubleValue;
 import org.apache.jackrabbit.value.LongValue;
 import org.apache.jackrabbit.value.StringValue;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.annotation.PostConstruct;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -72,12 +74,18 @@ public class UserManagerController
     @Reference
     private AuthorizationConfiguration authorizationConfiguration;
 
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
-
     @Autowired private Repository repository;
     @Autowired private UserDao userDao;
     @Autowired private TokenHandler tokenHandler;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
 
 
 

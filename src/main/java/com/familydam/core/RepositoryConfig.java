@@ -19,6 +19,9 @@
 
 package com.familydam.core;
 
+import com.familydam.core.observers.AddNodeEventListener;
+import com.familydam.core.observers.DeleteNodeEventListener;
+import com.familydam.core.observers.FileChangedEventListener;
 import com.familydam.core.observers.FileNodeObserver;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -30,10 +33,8 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -44,11 +45,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
 import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.value.StringValue;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -71,11 +68,13 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventListener;
+import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import javax.servlet.ServletContext;
 import java.io.File;
@@ -83,7 +82,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.security.Permission;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -123,6 +121,12 @@ public class RepositoryConfig
     @PostConstruct
     public void initialize() throws Exception
     {
+        File repoHomeDir = new File(repoHome);
+        File file = new File(repoHomeDir.getAbsolutePath()+"/_password");
+        if( file.exists() ) {
+            FamilyDAM.adminPassword = FileUtils.readFileToString(file);
+        }
+
         initRepository();
     }
 
@@ -168,6 +172,7 @@ public class RepositoryConfig
         List<String> configFilePaths = copyConfigs(repoHomeDir, configFileNames);
 
         repository = createRepository(configFilePaths, repoHomeDir);
+
     }
 
 
@@ -177,7 +182,7 @@ public class RepositoryConfig
         config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, commaSepFilePaths(repoConfigs));
         config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, false);
         config.put(OakOSGiRepositoryFactory.REPOSITORY_ENV_SPRING_BOOT, true);
-        config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, 10);
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, 30);
 
         //Set of properties used to perform property substitution in
         //OSGi configs
@@ -191,27 +196,33 @@ public class RepositoryConfig
 
         Repository repository = new OakOSGiRepositoryFactory().getRepository(config);
 
+
+        SimpleCredentials _credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+        Session session = repository.login(_credentials);
+
         // Create a random password and save it as the new admin password. Overiding the shipping default.
-        resetAdminPassword(repository);
+        resetAdminPassword(repository, session);
 
         // Create User Groups
-        createGroups(repository);
+        createGroups(repository, session);
 
         // Using the CND file, make sure all of the required mix-ins have been created.
-        registerCustomNodeTypes(repository);
+        registerCustomNodeTypes(repository, session);
 
         // register the default system directories
-        registerSystemDirectories(repository);
+        registerSystemDirectories(repository, session);
 
         // add users if the start up argument was passed in
-        createCustomUserFolders(repository);
+        createCustomUserFolders(repository, session);
 
+        //add node listeners
+        registerObservers(repository);
 
         return repository;
     }
 
 
-    private void resetAdminPassword(Repository repository)
+    private void resetAdminPassword(Repository repository, Session session)
     {
         try {
             File file = new File(repoHomeDir.getAbsolutePath()+"/_password");
@@ -224,8 +235,8 @@ public class RepositoryConfig
                 FileUtils.writeStringToFile(file, _password);
 
                 // Login with default admin/admin loging
-                SimpleCredentials _credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-                Session session = repository.login(_credentials);
+                //SimpleCredentials _credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+                //Session session = repository.login(_credentials);
 
                 // get the user manager
                 UserManager userManager = ((JackrabbitSession) session).getUserManager();
@@ -234,6 +245,7 @@ public class RepositoryConfig
                 //reset the password
                 ((User) authorizable).changePassword(_password);
                 FamilyDAM.adminPassword = _password;
+
                 session.save();
             }else{
                 FamilyDAM.adminPassword = FileUtils.readFileToString(file);
@@ -316,11 +328,9 @@ public class RepositoryConfig
      *
      * @param repository
      */
-    private void createGroups(Repository repository)
+    private void createGroups(Repository repository, Session session)
     {
-        Session session = null;
         try {
-            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
 
             Privilege[] privledges = session.getAccessControlManager().getPrivileges("/");
 
@@ -340,7 +350,7 @@ public class RepositoryConfig
             ex.printStackTrace();
         }
         finally {
-            if (session != null) session.logout();
+            //if (session != null) session.logout();
         }
     }
 
@@ -350,11 +360,9 @@ public class RepositoryConfig
      * Using the CND file, make sure all of the required mix-ins have been created.
      * @param repository
      */
-    private void registerCustomNodeTypes(Repository repository)
+    private void registerCustomNodeTypes(Repository repository, Session session)
     {
-        Session session = null;
         try {
-            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
             InputStream is = this.getClass().getClassLoader().getResourceAsStream("familydam_nodetypes.cnd");
 
             // Get the JackrabbitNodeTypeManager from the Workspace.
@@ -390,18 +398,14 @@ public class RepositoryConfig
         }catch(Exception ex){
             ex.printStackTrace();
         }finally {
-            if( session != null) session.logout();
+            //if( session != null) session.logout();
         }
     }
 
 
-    private void registerSystemDirectories(Repository repository)
+    private void registerSystemDirectories(Repository repository, Session session)
     {
-        Session session = null;
         try {
-            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-            session = repository.login(new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray()));
-
             Node _rootNode = session.getRootNode();
             Node _systemNode = createDAMSystemFolder(_rootNode, session);
             Node _filesNode = createDAMFilesFolder(_rootNode, session);
@@ -411,7 +415,7 @@ public class RepositoryConfig
         }catch(Exception ex){
             ex.printStackTrace();
         }finally {
-            if( session != null) session.logout();
+            //if( session != null) session.logout();
         }
     }
 
@@ -462,6 +466,8 @@ public class RepositoryConfig
         _jobQueueFolderNode.addMixin("dam:extensible");
         _jobQueueFolderNode.setProperty(JcrConstants.JCR_NAME, "job-queue");
         this.jobQueuePath = _jobQueueFolderNode.getPath();
+
+        session.save();
         return _filesNode;
     }
 
@@ -490,6 +496,8 @@ public class RepositoryConfig
         _filesNode.addMixin("dam:extensible");
         _filesNode.setProperty(JcrConstants.JCR_NAME, "Files");
         _filesNode.setProperty("order", "1");
+
+        session.save();
         return _filesNode;
     }
 
@@ -517,6 +525,8 @@ public class RepositoryConfig
         _filesNode.addMixin("dam:extensible");
         _filesNode.setProperty(JcrConstants.JCR_NAME, "Cloud");
         _filesNode.setProperty("order", "2");
+
+        session.save();
         return _filesNode;
     }
     // TODO: create a dam:email with the same logic/permissions as the dam:cloud folder
@@ -529,13 +539,9 @@ public class RepositoryConfig
      * On startup make sure that every dam:contentfolder node as the right child folders for every user in the Family Group
      * @param repository
      */
-    private void createCustomUserFolders(Repository repository)
+    private void createCustomUserFolders(Repository repository, Session session)
     {
-        Session session = null;
         try {
-            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-            session = repository.login(credentials);
-
             UserManager userManager = ((JackrabbitSession) session).getUserManager();
             Group familyGroup = (Group)userManager.getAuthorizable(FamilyDAMConstants.FAMILY_GROUP);
             Iterator<Authorizable> familyMembers = familyGroup.getMembers();
@@ -583,9 +589,62 @@ public class RepositoryConfig
         }catch(Exception ex){
             ex.printStackTrace();
         }finally {
-            if( session != null) session.logout();
+            //if( session != null) session.logout();
         }
     }
 
+
+    /**
+     * Register a global event listener to manage the JCR NODE events
+     * @param repository_
+     * @throws RepositoryException
+     */
+    private void registerObservers(Repository repository_) throws RepositoryException
+    {
+        Session session = null;
+        try {
+            SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
+            session = repository_.login(credentials);
+
+            ObservationManager observationManager = session.getWorkspace().getObservationManager();
+
+
+            //add watchers for new files
+            observationManager.addEventListener(getAddNodeListener(repository_), Event.NODE_ADDED, FamilyDAMConstants.CONTENT_ROOT, true, null, null, false);
+            //only watch the jcr:data property
+            observationManager.addEventListener(getFileChangedNodeListener(repository_), Event.PROPERTY_CHANGED, FamilyDAMConstants.CONTENT_ROOT, true, null, null, false);
+            //watch deleted nodes (we will remove all jobs for the node)
+            observationManager.addEventListener(getDeleteNodeListener(repository_), Event.NODE_REMOVED, FamilyDAMConstants.CONTENT_ROOT, true, null, null, false);
+
+
+            session.save();
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }finally {
+            //if( session != null) session.logout();
+        }
+    }
+
+
+    @Bean
+    public EventListener getAddNodeListener(Repository repository_)
+    {
+        EventListener _el = new AddNodeEventListener(repository_);
+        return _el;
+    }
+
+    @Bean
+    public EventListener getDeleteNodeListener(Repository repository_)
+    {
+        EventListener _el = new DeleteNodeEventListener(repository_);
+        return _el;
+    }
+
+    @Bean
+    public EventListener getFileChangedNodeListener(Repository repository_)
+    {
+        EventListener _el = new FileChangedEventListener(repository_);
+        return _el;
+    }
 
 }

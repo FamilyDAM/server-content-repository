@@ -50,9 +50,8 @@ import java.util.List;
 public class DirectoryController 
 {
     private Log log = LogFactory.getLog(this.getClass());
-    
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
+
+    @Autowired private AuthenticatedHelper authenticatedHelper = null;
 
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")

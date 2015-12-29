@@ -8,6 +8,7 @@ import com.familydam.core.helpers.NodeMapper;
 import com.familydam.core.models.INode;
 import com.familydam.core.services.AuthenticatedHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.annotation.PostConstruct;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -37,8 +39,15 @@ import java.util.Collection;
 @RequestMapping("/api/search")
 public class SearchController
 {
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
 
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")

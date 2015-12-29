@@ -7,6 +7,7 @@ package com.familydam.core.api;
 import com.familydam.core.dao.photosModule.TreeDao;
 import com.familydam.core.services.AuthenticatedHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import javax.annotation.PostConstruct;
 import javax.jcr.Session;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
@@ -31,8 +33,16 @@ import java.util.Map;
 @RequestMapping("/api/photos")
 public class PhotosModuleController
 {
-    @Autowired
-    private AuthenticatedHelper authenticatedHelper;
+    @Autowired private ApplicationContext applicationContext;
+
+    private AuthenticatedHelper authenticatedHelper = null;
+
+    @PostConstruct
+    private void setup()
+    {
+        authenticatedHelper = applicationContext.getBean(AuthenticatedHelper.class);
+    }
+
 
     @Autowired
     private TreeDao treeDao;
