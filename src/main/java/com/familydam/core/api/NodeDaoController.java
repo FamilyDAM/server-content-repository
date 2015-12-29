@@ -5,7 +5,6 @@
 package com.familydam.core.api;
 
 import com.familydam.core.FamilyDAMConstants;
-import com.familydam.core.JackrabbitConfig;
 import com.familydam.core.helpers.PropertyUtil;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
@@ -277,7 +276,7 @@ public class NodeDaoController
                 node.setProperty("_trashDate", Calendar.getInstance());
 
                 //todo check delete permission first
-                Node trashDest = JcrUtils.getOrCreateByPath(JackrabbitConfig.trashPath + node.getParent().getPath(), node.getParent().getPrimaryNodeType().getName(), session);
+                Node trashDest = session.getNode("/" +FamilyDAMConstants.SYSTEM_ROOT +"/").getNode("trash");
 
                 Node checkExisting = JcrUtils.getNodeIfExists(trashDest.getPath() + "/" + node.getName(), session);
                 if (checkExisting != null) {

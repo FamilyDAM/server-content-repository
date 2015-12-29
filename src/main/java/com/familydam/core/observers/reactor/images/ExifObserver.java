@@ -76,14 +76,15 @@ public class ExifObserver
 
 
                         // Extract Image Date Stamp, and save to root
-                        Date metadataDate = metadata.getDirectory(ExifIFD0Directory.class).getDate(306);
-                        if( metadataDate != null ){
-                            Date date = metadataDate;
-                            if( date != null ){
-                                String dateCreated = dateFormat.format(date);
-                                node.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateCreated);
+                        Date date = new Date();
+                        if( metadata.getDirectory(ExifIFD0Directory.class) != null ) {
+                            Date metadataDate = metadata.getDirectory(ExifIFD0Directory.class).getDate(306);
+                            if (metadataDate != null) {
+                                date = metadataDate;
                             }
                         }
+                        String dateCreated = dateFormat.format(date);
+                        node.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateCreated);
 
                         session.save();
 
