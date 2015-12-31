@@ -11,7 +11,9 @@ import com.familydam.core.models.INode;
 import org.apache.jackrabbit.JcrConstants;
 import org.jetbrains.annotations.NotNull;
 
+import javax.el.PropertyNotFoundException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 import java.util.ArrayList;
@@ -88,6 +90,14 @@ public class NodeMapper
             _mixins.add(nodeType.getName());
         }
         directory.setMixins(_mixins);
+
+        try {
+            if (node.getProperty("loading") != null) {
+                directory.setLoading(true);
+            }
+        }catch(PathNotFoundException|PropertyNotFoundException pe){
+            directory.setLoading(false);
+        }
 
         return directory;
     }

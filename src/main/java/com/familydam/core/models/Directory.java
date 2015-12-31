@@ -17,6 +17,7 @@ public class Directory implements INode
     private String path;
     private String parent;
     private int order = 0;
+    private Boolean loading = false;
     private Boolean isReadOnly = true;
     private String fileType = "unknown";
     private Collection<INode> children;
@@ -68,6 +69,18 @@ public class Directory implements INode
     public void setParent(String parent)
     {
         this.parent = parent;
+    }
+
+
+    public boolean getLoading()
+    {
+        return loading;
+    }
+
+
+    public void setLoading(boolean loading)
+    {
+        this.loading = loading;
     }
 
 

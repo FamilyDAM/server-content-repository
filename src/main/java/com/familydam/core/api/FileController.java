@@ -225,10 +225,12 @@ public class FileController
                 // TODO, this is slow, we should move this to the IMPORT process before we store the original
                 // Since we are going to load the Original image, as a fallback, We'll rotate it as needed
                 BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(rotatedImage, "png", baos);
-                InputStream is = new ByteArrayInputStream(baos.toByteArray());
-                return new InputStreamResource(is);
+                if( rotatedImage != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(rotatedImage, "png", baos);
+                    InputStream is = new ByteArrayInputStream(baos.toByteArray());
+                    return new InputStreamResource(is);
+                }
             }
         }
 

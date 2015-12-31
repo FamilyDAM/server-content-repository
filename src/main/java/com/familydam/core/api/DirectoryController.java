@@ -31,6 +31,7 @@ import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -59,7 +60,8 @@ public class DirectoryController
     public ResponseEntity<List<INode>> getDirectoryTree(
             HttpServletRequest request, HttpServletResponse response,
             @org.springframework.security.core.annotation.AuthenticationPrincipal Authentication currentUser_,
-            @RequestParam(value = "path", required = false, defaultValue = "/dam:files/") String path)
+            @RequestParam(value = "path", required = false, defaultValue = "/dam:files/") String path,
+            @RequestParam(value = "depth", required = false, defaultValue = "1") int depth)
             throws RepositoryException
     {
         Session session = null;
@@ -68,7 +70,7 @@ public class DirectoryController
             //Node root = session.getRootNode();
             Node contentRoot = session.getNode(path);
 
-            List<INode> nodes = walkDirectoryTree(contentRoot);
+            List<INode> nodes = walkDirectoryTree(contentRoot, depth);
             return new ResponseEntity<>(nodes, HttpStatus.OK);
 
         }
@@ -224,22 +226,37 @@ public class DirectoryController
      * @return
      * @throws RepositoryException
      */
-    private List<INode> walkDirectoryTree(Node root) throws RepositoryException
+    private List<INode> walkDirectoryTree(Node root, int depth_) throws RepositoryException
     {
         Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
         List<INode> childNodes = new ArrayList<>();
-        
+
+        for (Node node : _childNodes) {
+            if( node.getPrimaryNodeType().isNodeType(NodeType.NT_FOLDER) ) {
+                if (depth_ == 1 && JcrUtils.getChildNodes(node).iterator().hasNext()) {
+                    node.setProperty("loading", "true"); //set loading property used by TREE in the client
+                }
+            }
+        }
+
         for (Node node : _childNodes) {
             try {
-                if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
 
-                    List<INode> _childTree = walkDirectoryTree(node);
-
+                if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER))
+                {
                     INode _node = NodeMapper.map(node);
-                    _node.setChildren(_childTree);
-                    
-                    childNodes.add( _node );
+
+                    if( depth_ > 1 ) {
+                        int _depth = depth_-1;
+                        if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
+                            List<INode> _childTree = walkDirectoryTree(node, _depth);
+                            _node.setChildren(_childTree);
+                        }
+                    }
+
+                    childNodes.add(_node);
                 }
+
             }catch(PathNotFoundException|UnknownINodeException pnf){
                 log.error(pnf);
             }

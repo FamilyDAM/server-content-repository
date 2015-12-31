@@ -209,16 +209,16 @@ public class NodeDaoController
             Node node = session.getNodeByIdentifier(id_);
 
             if( node.isCheckedOut() ){
-                session.getWorkspace().getVersionManager().checkin(node.getPath());
-                session.save();
+                //session.getWorkspace().getVersionManager().checkin(node.getPath());
+                //session.save();
             }
 
-            session.getWorkspace().getVersionManager().checkout(node.getPath());
+            //session.getWorkspace().getVersionManager().checkout(node.getPath());
 
             PropertyUtil.writeParametersToNode(node, data_);
             session.save();
 
-            session.getWorkspace().getVersionManager().checkin(node.getPath());
+            //session.getWorkspace().getVersionManager().checkin(node.getPath());
 
 
             return new ResponseEntity<>(id_, HttpStatus.OK);

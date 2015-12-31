@@ -18,6 +18,7 @@ public class File implements INode
     private String path;
     private String parent;
     private int order = 0;
+    private Boolean loading = false;
     private Boolean isReadOnly = true;
     private String contentType = "unknown";
     private Collection<INode> children;

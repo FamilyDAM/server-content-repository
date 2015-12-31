@@ -53,6 +53,8 @@ public class ImageRenditionsService
         InputStream metadataIS = JcrUtils.readFile(node);
         InputStream originalImageIS = JcrUtils.readFile(node);
 
+        if( metadataIS == null ) return null;
+
         Metadata metadata = ImageMetadataReader.readMetadata(metadataIS);
         BufferedImage originalImage = ImageIO.read(originalImageIS);
 
