@@ -81,7 +81,7 @@ public class TreeDao
                 if (yearMap == null) {
                     yearMap = new HashMap();
                     yearMap.put("key", year);
-                    yearMap.put("label", year);
+                    yearMap.put("name", year);
                     yearMap.put("year", year);
                     yearMap.put("children", new HashMap());
                     _nodeMap.put(year, yearMap);
@@ -93,7 +93,7 @@ public class TreeDao
 
                     monthMap = new HashMap();
                     monthMap.put("key", year +"-" +monthNumber);
-                    monthMap.put("label", monthName);
+                    monthMap.put("name", monthName);
                     monthMap.put("year", year);
                     monthMap.put("month", monthNumber);
                     monthMap.put("children", new HashMap());
@@ -106,7 +106,7 @@ public class TreeDao
                 if (dayMap == null) {
                     dayMap = new HashMap();
                     dayMap.put("key", year +"-" +monthNumber +"-" +day);
-                    dayMap.put("label", day);
+                    dayMap.put("name", day);
                     dayMap.put("year", year);
                     dayMap.put("month", date);
                     dayMap.put("day", day);

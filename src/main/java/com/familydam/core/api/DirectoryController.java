@@ -31,7 +31,6 @@ import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.nodetype.NodeType;
 import javax.security.sasl.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -231,13 +230,6 @@ public class DirectoryController
         Iterable<Node> _childNodes = JcrUtils.getChildNodes(root);
         List<INode> childNodes = new ArrayList<>();
 
-        for (Node node : _childNodes) {
-            if( node.getPrimaryNodeType().isNodeType(NodeType.NT_FOLDER) ) {
-                if (depth_ == 1 && JcrUtils.getChildNodes(node).iterator().hasNext()) {
-                    node.setProperty("loading", "true"); //set loading property used by TREE in the client
-                }
-            }
-        }
 
         for (Node node : _childNodes) {
             try {
@@ -246,7 +238,12 @@ public class DirectoryController
                 {
                     INode _node = NodeMapper.map(node);
 
-                    if( depth_ > 1 ) {
+                    if (depth_ == 1 && JcrUtils.getChildNodes(node).iterator().hasNext()) {
+                        if( _node instanceof Directory ) {
+                            ((Directory) _node).setLoading(true); //set loading property used by TREE in the client
+                        }
+                    }
+                    else if( depth_ > 1 ) {
                         int _depth = depth_-1;
                         if (node.getPrimaryNodeType().isNodeType(JcrConstants.NT_FOLDER)) {
                             List<INode> _childTree = walkDirectoryTree(node, _depth);

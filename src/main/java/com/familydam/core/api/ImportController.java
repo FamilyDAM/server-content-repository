@@ -133,13 +133,18 @@ public class ImportController
             Node _contentRoot = session.getNode("/" +FamilyDAMConstants.CONTENT_ROOT);
             String _relativePath = dirPath.replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "");
             Node copyToDir = JcrUtils.getOrCreateByPath(_contentRoot, _relativePath, false, JcrConstants.NT_FOLDER, JcrConstants.NT_FOLDER, true);
-
+//todo add mixins to all parent folders
 
             for (Part part : request.getParts()) {
                 String _name = part.getName();
                 if (_name.equalsIgnoreCase("file")) {
                     String _contentType = part.getContentType();
                     String _fileName = ((Part) part).getSubmittedFileName();
+
+                    int pos = _fileName.lastIndexOf("/");
+                    if( pos > -1 && (pos+1) < _fileName.length() ){
+                        _fileName = _fileName.substring(pos+1);
+                    }
 
                     InputStream _file = part.getInputStream();
 
