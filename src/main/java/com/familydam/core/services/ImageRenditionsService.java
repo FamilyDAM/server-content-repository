@@ -161,6 +161,9 @@ public class ImageRenditionsService
 
         // Save Image
         Node renditions = JcrUtils.getOrAddNode(node, FamilyDAMConstants.RENDITIONS, JcrConstants.NT_FOLDER);
+        renditions.addMixin("dam:extensible");
+        renditions.setProperty(FamilyDAMConstants.WIDTH, image.getWidth());
+        renditions.setProperty(FamilyDAMConstants.HEIGHT, image.getHeight());
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(image, mimeType, byteArrayOutputStream);

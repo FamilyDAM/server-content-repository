@@ -606,8 +606,18 @@ public class RepositoryConfig
             SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
             session = repository_.login(credentials);
 
-            ObservationManager observationManager = session.getWorkspace().getObservationManager();
+            //Reset an
+            Node jobQueueNode = session.getNode("/" + FamilyDAMConstants.SYSTEM_ROOT + "/" + FamilyDAMConstants.SYSTEM_JOBQUEUE_FOLDER);
+            Iterable<Node> _queueNodes = JcrUtils.getChildNodes(jobQueueNode);
+            for (Node queueNode : _queueNodes) {
+                if( queueNode.getProperty("status").getString().equals(FamilyDAMConstants.PROCESSING) )
+                {
+                    queueNode.setProperty("status", FamilyDAMConstants.WAITING);
+                }
+            }
+            session.save();
 
+            ObservationManager observationManager = session.getWorkspace().getObservationManager();
 
             //add watchers for new files
             observationManager.addEventListener(getAddNodeListener(repository_), Event.NODE_ADDED, FamilyDAMConstants.CONTENT_ROOT, true, null, null, false);

@@ -4,7 +4,9 @@
 
 package com.familydam.core.helpers;
 
+import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.exceptions.UnknownINodeException;
+import com.familydam.core.models.DamImage;
 import com.familydam.core.models.Directory;
 import com.familydam.core.models.File;
 import com.familydam.core.models.INode;
@@ -38,32 +40,6 @@ public class NodeMapper
         throw new UnknownINodeException("no mapping for type " +node.getPrimaryNodeType().getName());
     }
 
-
-    @NotNull private static INode mapFileNode(Node node) throws RepositoryException
-    {
-        // return map for every file
-        File file = new File();
-        file.setId(node.getIdentifier());
-        if( node.hasProperty(JcrConstants.JCR_NAME) ) {
-            file.setName(node.getProperty(JcrConstants.JCR_NAME).getString());
-        }else{
-            file.setName(node.getName());
-        }
-        file.setPath(node.getPath());
-        if (node.hasProperty("order")) {
-            file.setOrder(new Long(node.getProperty("order").getLong()).intValue());
-        }
-        file.setParent(node.getParent().getPath());
-        file.setIsReadOnly(false);
-
-        Collection<String> _mixins = new ArrayList();
-        for (NodeType nodeType : node.getMixinNodeTypes()) {
-            _mixins.add(nodeType.getName());
-        }
-        file.setMixins(_mixins);
-
-        return file;
-    }
 
 
     @NotNull private static INode mapDirectoryNode(Node node) throws RepositoryException
@@ -101,4 +77,62 @@ public class NodeMapper
 
         return directory;
     }
+
+
+
+    @NotNull private static INode mapFileNode(Node node) throws RepositoryException
+    {
+        // return map for every file
+        File file = new File();
+
+        // Add image specific properties
+        if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE) )
+        {
+            file = new DamImage();
+            try {
+                ((DamImage) file).setWidth(node.getProperty(FamilyDAMConstants.WIDTH).getDouble());
+                ((DamImage) file).setHeight(node.getProperty(FamilyDAMConstants.HEIGHT).getDouble());
+            }catch(Exception ex){
+                //set a default
+                ((DamImage) file).setWidth(250d);
+                ((DamImage) file).setHeight(250d);
+            }
+        }
+
+        file.setId(node.getIdentifier());
+        if( node.hasProperty(JcrConstants.JCR_NAME) ) {
+            file.setName(node.getProperty(JcrConstants.JCR_NAME).getString());
+        }else{
+            file.setName(node.getName());
+        }
+        file.setPath(node.getPath());
+        if (node.hasProperty("order")) {
+            file.setOrder(new Long(node.getProperty("order").getLong()).intValue());
+        }
+
+        file.setParent(node.getParent().getPath());
+        file.setIsReadOnly(false);
+
+        Collection<String> _mixins = new ArrayList();
+        for (NodeType nodeType : node.getMixinNodeTypes()) {
+            _mixins.add(nodeType.getName());
+        }
+        file.setMixins(_mixins);
+
+        Collection<String> _tags = new ArrayList();
+        if( node.hasNode("dam:tags") ){
+            node.getNode("dam:tags");
+        }
+        file.setTags(_tags);
+
+        Collection<String> _people = new ArrayList();
+        if( node.hasNode("dam:people") ){
+            node.getNode("dam:people");
+        }
+        file.setPeople(_people);
+
+        return file;
+    }
+
+
 }

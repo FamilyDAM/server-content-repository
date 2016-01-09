@@ -23,6 +23,8 @@ public class File implements INode
     private String contentType = "unknown";
     private Collection<INode> children;
     private Collection<String> mixins;
+    private Collection<String> tags;
+    private Collection<String> people;
 
 
     @Override public String getId()
@@ -130,5 +132,29 @@ public class File implements INode
     public void setMixins(Collection<String> mixins)
     {
         this.mixins = mixins;
+    }
+
+
+    public Collection<String> getTags()
+    {
+        return tags;
+    }
+
+
+    public void setTags(Collection<String> tags)
+    {
+        this.tags = tags;
+    }
+
+
+    public Collection<String> getPeople()
+    {
+        return people;
+    }
+
+
+    public void setPeople(Collection<String> people)
+    {
+        this.people = people;
     }
 }

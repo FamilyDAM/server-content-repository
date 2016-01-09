@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.Reactor;
+import reactor.event.Event;
 
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
@@ -215,17 +216,20 @@ public class FileController
             if (thumbnailNode != null) {
                 imageNode = thumbnailNode;
             }else{
-                /**
+
                 if( rendition.equalsIgnoreCase(FamilyDAMConstants.THUMBNAIL200 )) {
                     reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(imageNode.getPath()));
                 }else if( rendition.equalsIgnoreCase(FamilyDAMConstants.WEB1024 )) {
                     reactor.notify("image." + FamilyDAMConstants.WEB1024, Event.wrap(imageNode.getPath()));
-                }**/
+                }
 
                 // TODO, this is slow, we should move this to the IMPORT process before we store the original
                 // Since we are going to load the Original image, as a fallback, We'll rotate it as needed
                 BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
                 if( rotatedImage != null) {
+                    node.setProperty(FamilyDAMConstants.WIDTH, rotatedImage.getWidth());
+                    node.setProperty(FamilyDAMConstants.HEIGHT, rotatedImage.getHeight());
+
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     ImageIO.write(rotatedImage, "png", baos);
                     InputStream is = new ByteArrayInputStream(baos.toByteArray());

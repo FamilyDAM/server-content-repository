@@ -54,7 +54,7 @@ public class AddNodeEventListener implements EventListener
             try {
                 JackrabbitEvent _event = (JackrabbitEvent) events.next();
                 if (_event.getInfo().get(JcrConstants.JCR_PRIMARYTYPE).equals("nt:file")) {
-                    System.out.println(_event.toString());
+                    log.trace(_event.toString());
 
                     if( authenticatedHelper == null){
                         authenticatedHelper = context.getBean(AuthenticatedHelper.class);

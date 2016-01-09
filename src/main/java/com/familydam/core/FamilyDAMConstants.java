@@ -45,6 +45,7 @@ public class FamilyDAMConstants
 
     //
     public static final String THUMBNAIL200 = "thumbnail.200";
+    public static final String WEB500 = "web.500";
     public static final String WEB1024 = "web.1024";
 
     //headers
@@ -79,5 +80,7 @@ public class FamilyDAMConstants
     public static final String ITUNES_COMMENT = "itunes_comment";
     public static final String ORIGINAL_ARTIST = "original_artist";
     public static final String PUBLISHER = "publisher";
+    public static final String WIDTH = "width";
+    public static final String HEIGHT = "height";
 
 }

@@ -52,7 +52,10 @@ public class ThumbnailObserver
                 if( node.isNodeType("dam:image") ) {
                     try {
                         BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
+
                         if( rotatedImage != null ) {
+                            node.setProperty(FamilyDAMConstants.WIDTH, rotatedImage.getWidth());
+                            node.setProperty(FamilyDAMConstants.HEIGHT, rotatedImage.getHeight());
                             BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, 200, Scalr.Method.AUTOMATIC);
                             String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
                             session.save();

@@ -11,6 +11,7 @@ import com.familydam.core.services.ImageRenditionsService;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.imgscalr.Scalr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +30,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import reactor.core.Reactor;
-import reactor.event.Event;
 
 import javax.annotation.PostConstruct;
-import javax.imageio.ImageIO;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -41,8 +40,6 @@ import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Calendar;
@@ -316,23 +313,23 @@ public class NodeDaoController
         String rendition = request.getParameter("rendition");
         if( rendition != null && node.isNodeType("dam:image"))
         {
+            Number size = new Integer(rendition.split("\\.")[1]);
+
             Node thumbnailNode = JcrUtils.getNodeIfExists(node, FamilyDAMConstants.RENDITIONS + "/" + rendition);
             if (thumbnailNode != null) {
                 imageNode = thumbnailNode;
             }else{
-                if( rendition.equalsIgnoreCase(FamilyDAMConstants.THUMBNAIL200 )) {
-                    reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(imageNode.getPath()));
-                }else if( rendition.equalsIgnoreCase(FamilyDAMConstants.WEB1024 )) {
-                    reactor.notify("image." + FamilyDAMConstants.WEB1024, Event.wrap(imageNode.getPath()));
-                }
 
                 // TODO, this is slow, we should move this to the IMPORT process before we store the original
                 // Since we are going to load the Original image, as a fallback, We'll rotate it as needed
                 BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(rotatedImage, "jpg", baos);
-                InputStream is = new ByteArrayInputStream(baos.toByteArray());
-                return new InputStreamResource(is);
+
+                BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, size.intValue(), Scalr.Method.AUTOMATIC);
+
+                String renditionPath = imageRenditionsService.saveRendition(session, node, rendition, scaledImage, "PNG");
+                session.save();
+
+                imageNode = session.getNode(renditionPath);
             }
         }
 
