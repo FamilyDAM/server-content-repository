@@ -8,6 +8,7 @@ import com.familydam.core.helpers.NodeMapper;
 import com.familydam.core.models.INode;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.jackrabbit.value.ValueFactoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.annotation.PostConstruct;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -30,6 +32,7 @@ import javax.jcr.query.QueryResult;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -103,8 +106,12 @@ public class SearchController
 
             boolean hasTags = false;
             boolean hasPeople = false;
+            boolean hasDate = false;
+            boolean hasPath = false;
             StringBuilder tagClause = new StringBuilder();
             StringBuilder peopleClause = new StringBuilder();
+            StringBuilder dateClause = new StringBuilder();
+            StringBuilder pathClause = new StringBuilder();
 
 
             if (_filters.containsKey("tags")) {
@@ -133,6 +140,32 @@ public class SearchController
                     }
                 }
             }
+            if (_filters.containsKey("date")) {
+                List<Map> _dates = (List) _filters.get("date");
+                if (_dates.size() > 0) {
+                    hasDate = true;
+                    for (int i = 0; i < _dates.size(); i++) {
+                        Map date = _dates.get(i);
+                        dateClause.append(" ( [dam:datecreated] >= cast('" +parseStartDate(date) +"' as date) AND [dam:datecreated] <= cast('" +parseEndDate(date) +"' as date) )");
+                        if( i >= 0 && i < (_dates.size()-1) ){
+                            dateClause.append(" OR ");
+                        }
+                    }
+                }
+            }
+            if (_filters.containsKey("paths")) {
+                List<Map> _paths = (List) _filters.get("paths");
+                if (_paths.size() > 0) {
+                    hasPath = true;
+                    for (int i = 0; i < _paths.size(); i++) {
+                        Map _path = _paths.get(i);
+                        pathClause.append(" ISDESCENDANTNODE(['" +_path.get("path") +"']) ");
+                        if( i >= 0 && i < (_paths.size()-1) ){
+                            pathClause.append(" OR ");
+                        }
+                    }
+                }
+            }
 
 
             if( hasTags || hasPeople ){
@@ -146,6 +179,20 @@ public class SearchController
                 if( hasPeople ){
                     sql.append(peopleClause.toString());
                 }
+
+                sql.append(" ) ");
+            }
+
+            if( hasDate ){
+                sql.append(" AND (");
+                sql.append(dateClause.toString());
+                sql.append(" ) ");
+            }
+
+
+            if( hasPath ){
+                sql.append(" AND (");
+                sql.append(pathClause.toString());
                 sql.append(" ) ");
             }
 
@@ -185,6 +232,71 @@ public class SearchController
                 session.logout();
             }
         }
+    }
+
+
+    private String parseStartDate(Map date) throws RepositoryException
+    {
+        Calendar cal = Calendar.getInstance();
+        if( date.containsKey("day") ){
+            int _year = new Integer((String)date.get("year")).intValue();
+            int _month = new Integer((String)date.get("month")).intValue();
+            int _day = new Integer((String)date.get("day")).intValue();
+            cal.set(Calendar.YEAR, _year);
+            cal.set(Calendar.MONTH, _month-1);
+            cal.set(Calendar.DAY_OF_MONTH, _day);
+        }
+        else if( date.containsKey("month") )
+        {
+            int _year = new Integer((String)date.get("year")).intValue();
+            int _month = new Integer((String)date.get("month")).intValue();
+            cal.set(Calendar.YEAR, _year);
+            cal.set(Calendar.MONTH, _month-1);
+            cal.set(Calendar.DAY_OF_MONTH, 1);
+        }
+        else
+        {
+            int _year = new Integer((String)date.get("year")).intValue();
+            cal.set(Calendar.YEAR, _year);
+            cal.set(Calendar.MONTH, 0);
+            cal.set(Calendar.DAY_OF_MONTH, 1);
+        }
+
+        String _date = ValueFactoryImpl.getInstance().createValue(cal).getString();
+        return _date.substring(0, _date.lastIndexOf("T")) +"T00:00:01.000Z";
+    }
+
+
+
+    private String parseEndDate(Map date) throws RepositoryException
+    {
+        Calendar cal = Calendar.getInstance();
+        if( date.containsKey("day") ){
+            int _year = new Integer((String)date.get("year")).intValue();
+            int _month = new Integer((String)date.get("month")).intValue();
+            int _day = new Integer((String)date.get("day")).intValue();
+            cal.set(Calendar.YEAR, _year);
+            cal.set(Calendar.MONTH, _month-1);
+            cal.set(Calendar.DAY_OF_MONTH, _day);
+        }
+        else if( date.containsKey("month") )
+        {
+            int _year = new Integer((String)date.get("year")).intValue();
+            int _month = new Integer((String)date.get("month")).intValue();
+            cal.set(Calendar.YEAR, _year);
+            cal.set(Calendar.MONTH, _month-1);
+            cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+        }
+        else
+        {
+            int _year = new Integer((String)date.get("year")).intValue();
+            cal.set(Calendar.YEAR, _year);
+            cal.set(Calendar.MONTH, 11);
+            cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+        }
+
+        String _date = ValueFactoryImpl.getInstance().createValue(cal).getString();
+        return _date.substring(0, _date.lastIndexOf("T")) +"T23:59:59.000Z";
     }
 
 }

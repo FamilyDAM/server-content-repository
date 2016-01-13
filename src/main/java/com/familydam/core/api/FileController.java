@@ -215,12 +215,12 @@ public class FileController
             Node thumbnailNode = JcrUtils.getNodeIfExists(node, FamilyDAMConstants.RENDITIONS + "/" + rendition);
             if (thumbnailNode != null) {
                 imageNode = thumbnailNode;
+
             }else{
 
-                if( rendition.equalsIgnoreCase(FamilyDAMConstants.THUMBNAIL200 )) {
-                    reactor.notify("image." + FamilyDAMConstants.THUMBNAIL200, Event.wrap(imageNode.getPath()));
-                }else if( rendition.equalsIgnoreCase(FamilyDAMConstants.WEB1024 )) {
-                    reactor.notify("image." + FamilyDAMConstants.WEB1024, Event.wrap(imageNode.getPath()));
+                if( rendition.startsWith("web") ) {
+                    //reactor.notify("image." + FamilyDAMConstants.WEB1024, Event.wrap(imageNode.getPath()));
+                    reactor.notify("image.rendition", Event.wrap(imageNode.getPath() +"|" +rendition.substring(rendition.indexOf('.'))));
                 }
 
                 // TODO, this is slow, we should move this to the IMPORT process before we store the original
@@ -235,6 +235,7 @@ public class FileController
                     InputStream is = new ByteArrayInputStream(baos.toByteArray());
                     return new InputStreamResource(is);
                 }
+
             }
         }
 

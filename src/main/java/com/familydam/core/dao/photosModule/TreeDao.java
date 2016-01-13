@@ -108,7 +108,7 @@ public class TreeDao
                     dayMap.put("key", year +"-" +monthNumber +"-" +day);
                     dayMap.put("name", day);
                     dayMap.put("year", year);
-                    dayMap.put("month", date);
+                    dayMap.put("month", monthNumber);
                     dayMap.put("day", day);
                     dayMap.put("children", new HashMap());
 

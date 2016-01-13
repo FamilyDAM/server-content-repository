@@ -41,7 +41,7 @@ public class ThumbnailObserver
     private int jobsPerIteration = 4;
 
 
-    public void execute(Session session, Node node) throws RepositoryException, ImageProcessingException, MetadataException
+    public void execute(Session session, Node node, int size_) throws RepositoryException, ImageProcessingException, MetadataException
     {
         if( node != null ){
             if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
@@ -56,12 +56,12 @@ public class ThumbnailObserver
                         if( rotatedImage != null ) {
                             node.setProperty(FamilyDAMConstants.WIDTH, rotatedImage.getWidth());
                             node.setProperty(FamilyDAMConstants.HEIGHT, rotatedImage.getHeight());
-                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, 200, Scalr.Method.AUTOMATIC);
-                            String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
+                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, size_, Scalr.Method.AUTOMATIC);
+                            String renditionPath = imageRenditionsService.saveRendition(session, node, "web.200", scaledImage, "PNG");
                             session.save();
                         }else{
-                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, 200, Scalr.Method.AUTOMATIC);
-                            String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.THUMBNAIL200, scaledImage, "PNG");
+                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, size_, Scalr.Method.AUTOMATIC);
+                            String renditionPath = imageRenditionsService.saveRendition(session, node, "web.1024", scaledImage, "PNG");
                             session.save();
                         }
 
@@ -80,21 +80,27 @@ public class ThumbnailObserver
 
 
     //@ReplyTo("reply.topic")
-    @Selector("image.web.1024")
-    public void handleWeb1024(Event<String> evt)
+    @Selector("image.rendition")
+    public void handleRendition(Event<String> evt)
     {
-        String path = evt.getData();
+        String _path = evt.getData().substring(0);
+        Integer _size = 1024;
+        int pos = evt.getData().indexOf("|");
+        if( pos > -1 ) {
+            _path = evt.getData().substring(0, pos);
+            _size = new Integer(evt.getData().substring(pos));
+        }
 
         Session session = null;
         try{
             session = authenticatedHelper.getAdminSession();
 
-            if( path.startsWith("/") )
+            if( _path.startsWith("/") )
             {
-                path = path.substring(1);
+                _path = _path.substring(1);
             }
 
-            Node node = JcrUtils.getNodeIfExists(session.getRootNode(), path);
+            Node node = JcrUtils.getNodeIfExists(session.getRootNode(), _path);
             if( node != null ){
                 if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
                 {
@@ -103,8 +109,8 @@ public class ThumbnailObserver
                     // create renditions
                     try {
                         BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
-                        BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, 1024, Scalr.Method.AUTOMATIC);
-                        String renditionPath = imageRenditionsService.saveRendition(session, node, FamilyDAMConstants.WEB1024, scaledImage, "PNG");
+                        BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, _size, Scalr.Method.AUTOMATIC);
+                        String renditionPath = imageRenditionsService.saveRendition(session, node, "web." +_size, scaledImage, "PNG");
                         session.save();
                     }
                     catch (RepositoryException | IOException ex) {

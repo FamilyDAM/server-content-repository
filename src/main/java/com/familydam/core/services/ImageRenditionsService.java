@@ -52,21 +52,25 @@ public class ImageRenditionsService
 
         InputStream metadataIS = JcrUtils.readFile(node);
         InputStream originalImageIS = JcrUtils.readFile(node);
+        BufferedImage originalImage = ImageIO.read(originalImageIS);
 
-        if( metadataIS == null ) return null;
+        if( metadataIS == null ) return originalImage;
 
         Metadata metadata = ImageMetadataReader.readMetadata(metadataIS);
-        BufferedImage originalImage = ImageIO.read(originalImageIS);
 
         ExifIFD0Directory exifIFD0Directory = metadata.getDirectory(ExifIFD0Directory.class);
         JpegDirectory jpegDirectory = (JpegDirectory) metadata.getDirectory(JpegDirectory.class);
 
         int orientation = 1;
-        try {
-            orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
-        }
-        catch (Exception ex) {
-            //ex.printStackTrace();
+        if( exifIFD0Directory != null ) {
+            try {
+                orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }else{
+            return originalImage;
         }
 
         if( jpegDirectory != null ) {
@@ -118,7 +122,7 @@ public class ImageRenditionsService
 
             return destinationImage;
         }
-        return null;
+        return originalImage;
     }
 
 

@@ -96,7 +96,7 @@ public class ImageJobRunner
 
                                 String _event = node.getProperty("event").getString();
                                 if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_THUMBNAIL)) {
-                                    thumbnailObserver.execute(_session, _node);
+                                    thumbnailObserver.execute(_session, _node, 200);
                                 } else if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_METADATA)) {
                                     exifObserver.execute(_session, _node);
                                 } else if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_PHASH)) {
