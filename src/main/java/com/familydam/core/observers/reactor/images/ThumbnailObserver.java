@@ -41,7 +41,7 @@ public class ThumbnailObserver
     private int jobsPerIteration = 4;
 
 
-    public void execute(Session session, Node node, int size_) throws RepositoryException, ImageProcessingException, MetadataException
+    public void execute(Session session, Node node, int size_) throws RepositoryException, ImageProcessingException, MetadataException, IOException
     {
         if( node != null ){
             if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
@@ -50,7 +50,7 @@ public class ThumbnailObserver
 
                 // create renditions
                 if( node.isNodeType("dam:image") ) {
-                    try {
+
                         BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
 
                         if( rotatedImage != null ) {
@@ -66,12 +66,7 @@ public class ThumbnailObserver
                         }
 
                         session.save();
-                    }
-                    catch (RepositoryException | IOException ex) {
-                        ex.printStackTrace();
-                    }finally {
 
-                    }
                 }
 
             }

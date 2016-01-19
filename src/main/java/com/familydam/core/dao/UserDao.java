@@ -4,7 +4,6 @@
 
 package com.familydam.core.dao;
 
-import com.familydam.core.FamilyDAM;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.security.CustomUserDetails;
 import com.familydam.core.services.AuthenticatedHelper;
@@ -50,11 +49,9 @@ public class UserDao
     private UserManager adminUserManager;
 
     @PostConstruct
-    private void initUserManager() throws RepositoryException
+    private void initUserManager() throws RepositoryException, AuthenticationException
     {
-        SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-        Session session = (SessionImpl) repository.login(credentials);
-        adminUserManager = (((SessionImpl) session).getUserManager());
+        adminUserManager = (((SessionImpl) authenticatedHelper.getAdminSession()).getUserManager());
     }
 
 

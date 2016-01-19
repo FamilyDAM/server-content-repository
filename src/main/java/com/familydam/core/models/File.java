@@ -4,6 +4,7 @@
 
 package com.familydam.core.models;
 
+import java.util.Calendar;
 import java.util.Collection;
 
 /**
@@ -15,6 +16,7 @@ public class File implements INode
     
     private String id;
     private String name;
+    private Calendar dateCreated;
     private String path;
     private String parent;
     private int order = 0;
@@ -48,6 +50,18 @@ public class File implements INode
     @Override public void setName(String name)
     {
         this.name = name;
+    }
+
+
+    @Override public Calendar getDateCreated()
+    {
+        return dateCreated;
+    }
+
+
+    @Override public void setDateCreated(Calendar dateCreated)
+    {
+        this.dateCreated = dateCreated;
     }
 
 

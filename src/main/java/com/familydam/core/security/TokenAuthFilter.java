@@ -124,7 +124,7 @@ public class TokenAuthFilter implements Filter
     {
         try {
             Credentials _credentials = new TokenCredentials(token_);
-            ((TokenCredentials)_credentials).setAttribute(".token", "");
+            //((TokenCredentials)_credentials).setAttribute(".token", "");
             Session session = repository.login(_credentials);
             CustomUserDetails user = (CustomUserDetails)userService.loadUserByUsername(session.getUserID());
             user.setSession(session);

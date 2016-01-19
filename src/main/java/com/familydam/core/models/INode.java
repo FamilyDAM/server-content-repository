@@ -4,6 +4,7 @@
 
 package com.familydam.core.models;
 
+import java.util.Calendar;
 import java.util.Collection;
 
 /**
@@ -16,6 +17,9 @@ public interface INode
     
     String getName();
     void setName( String name );
+
+    Calendar getDateCreated();
+    void setDateCreated( Calendar date );
     
     int getOrder();
     void setOrder( int order );

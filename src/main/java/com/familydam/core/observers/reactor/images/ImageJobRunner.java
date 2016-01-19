@@ -4,8 +4,6 @@
 
 package com.familydam.core.observers.reactor.images;
 
-import com.drew.imaging.ImageProcessingException;
-import com.drew.metadata.MetadataException;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
@@ -17,7 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.Reactor;
 
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -92,23 +89,28 @@ public class ImageJobRunner
 
                             try {
                                 Node _node = _session.getNodeByIdentifier(node.getProperty("nodeId").getString());
-                                jobQueueServices.startJob(_session, node);
 
                                 String _event = node.getProperty("event").getString();
-                                if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_THUMBNAIL)) {
+                                if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_THUMBNAIL))
+                                {
+                                    jobQueueServices.startJob(_session, node);
                                     thumbnailObserver.execute(_session, _node, 200);
-                                } else if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_METADATA)) {
-                                    exifObserver.execute(_session, _node);
-                                } else if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_PHASH)) {
-                                    pHashObserver.execute(_session, _node);
+                                    jobQueueServices.deleteJob(_session, node);//, FamilyDAMConstants.EVENT_IMAGE_THUMBNAIL);
                                 }
-                                jobQueueServices.deleteJob(_session, _node, FamilyDAMConstants.EVENT_IMAGE_THUMBNAIL);
+                                else if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_METADATA))
+                                {
+                                    jobQueueServices.startJob(_session, node);
+                                    exifObserver.execute(_session, _node);
+                                    jobQueueServices.deleteJob(_session, node);//, FamilyDAMConstants.EVENT_IMAGE_THUMBNAIL);
+                                }
+                                else if (_event.equals(FamilyDAMConstants.EVENT_IMAGE_PHASH))
+                                {
+                                    jobQueueServices.startJob(_session, node);
+                                    pHashObserver.execute(_session, _node);
+                                    jobQueueServices.deleteJob(_session, node);
+                                }
                             }
-                            catch (InvalidItemStateException iex) {
-                                iex.printStackTrace();
-                                log.error(iex);
-                            }
-                            catch (javax.jcr.RepositoryException | ImageProcessingException | MetadataException ex) {
+                            catch (Exception ex) {
                                 ex.printStackTrace();
                                 log.error(ex);
                                 jobQueueServices.failJob(_session, node, ex);

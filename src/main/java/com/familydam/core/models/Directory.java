@@ -4,6 +4,7 @@
 
 package com.familydam.core.models;
 
+import java.util.Calendar;
 import java.util.Collection;
 
 /**
@@ -16,6 +17,7 @@ public class Directory implements INode
     private String name;
     private String path;
     private String parent;
+    private Calendar dataCreated;
     private int order = 0;
     private Boolean loading = false;
     private Boolean isReadOnly = true;
@@ -24,27 +26,39 @@ public class Directory implements INode
     private Collection<String> mixins;
 
 
-    public String getId()
+    @Override public String getId()
     {
         return id;
     }
 
 
-    public void setId(String id)
+    @Override public void setId(String id)
     {
         this.id = id;
     }
 
 
-    public String getName()
+    @Override public String getName()
     {
         return name;
     }
 
 
-    public void setName(String name)
+    @Override public void setName(String name)
     {
         this.name = name;
+    }
+
+
+    @Override public Calendar getDateCreated()
+    {
+        return dataCreated;
+    }
+
+
+    @Override public void setDateCreated(Calendar date)
+    {
+        dataCreated = date;
     }
 
 
@@ -121,25 +135,25 @@ public class Directory implements INode
 
 
 
-    public Collection<INode> getChildren()
+    @Override public Collection<INode> getChildren()
     {
         return children;
     }
 
 
-    public void setChildren(Collection<INode> children)
+    @Override public void setChildren(Collection<INode> children)
     {
         this.children = children;
     }
 
 
-    public Collection<String> getMixins()
+    @Override public Collection<String> getMixins()
     {
         return mixins;
     }
 
 
-    public void setMixins(Collection<String> mixins)
+    @Override public void setMixins(Collection<String> mixins)
     {
         this.mixins = mixins;
     }

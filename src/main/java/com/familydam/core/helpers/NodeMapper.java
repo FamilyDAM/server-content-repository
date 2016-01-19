@@ -18,15 +18,20 @@ import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 
 /**
  * Created by mnimer on 2/18/15.
  */
 public class NodeMapper
 {
+
     public static INode map(Node node) throws RepositoryException,UnknownINodeException
     {
 
@@ -130,6 +135,17 @@ public class NodeMapper
             node.getNode("dam:people");
         }
         file.setPeople(_people);
+
+
+
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date date = sdf.parse(node.getProperty(FamilyDAMConstants.DAM_DATECREATED).getString());
+            Calendar cal = sdf.getCalendar();
+            file.setDateCreated(cal);
+        }catch(ParseException pe ){
+            //todo: decide what to do
+        }
 
         return file;
     }

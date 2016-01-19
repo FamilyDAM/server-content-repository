@@ -37,62 +37,57 @@ public class ExifObserver
     private SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");
 
 
-    public void execute(Session session, Node node) throws RepositoryException
+    public void execute(Session session, Node node) throws RepositoryException, ImageProcessingException, IOException
     {
-        if( node != null ){
-            if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
-            {
-                log.debug("{image.metadata Observer} " +node.getPath());
+        if (node != null) {
+            if (node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
+                log.debug("{image.metadata Observer} " + node.getPath());
 
                 // create renditions
-                if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
+                if (node.isNodeType(FamilyDAMConstants.DAM_IMAGE)) {
                     InputStream is = JcrUtils.readFile(node);
                     Node metadataNode = JcrUtils.getOrAddNode(node, FamilyDAMConstants.METADATA, JcrConstants.NT_UNSTRUCTURED);
 
-                    try {
-                        Metadata metadata = ImageMetadataReader.readMetadata(is);
 
-                        Iterable<Directory> directories = metadata.getDirectories();
+                    Metadata metadata = ImageMetadataReader.readMetadata(is);
 
-                        for (Directory directory : directories) {
-                            String _name = directory.getName();
-                            Node dir = JcrUtils.getOrAddNode(metadataNode, _name, JcrConstants.NT_UNSTRUCTURED);
+                    Iterable<Directory> directories = metadata.getDirectories();
 
-                            Collection<Tag> tags = directory.getTags();
-                            for (Tag tag : tags) {
-                                int tagType = tag.getTagType();
-                                String tagTypeHex = tag.getTagTypeHex();
-                                String tagName = tag.getTagName();
-                                String nodeName = tagName.replace(" ", "_").replace("/", "_");
-                                String desc = tag.getDescription();
+                    for (Directory directory : directories) {
+                        String _name = directory.getName();
+                        Node dir = JcrUtils.getOrAddNode(metadataNode, _name, JcrConstants.NT_UNSTRUCTURED);
 
-                                Node prop = JcrUtils.getOrAddNode(dir, nodeName, JcrConstants.NT_UNSTRUCTURED);
-                                prop.setProperty("name", tagName);
-                                prop.setProperty("description", desc);
-                                prop.setProperty("type", tagType);
-                                prop.setProperty("typeHex", tagTypeHex);
-                            }
+                        Collection<Tag> tags = directory.getTags();
+                        for (Tag tag : tags) {
+                            int tagType = tag.getTagType();
+                            String tagTypeHex = tag.getTagTypeHex();
+                            String tagName = tag.getTagName();
+                            String nodeName = tagName.replace(" ", "_").replace("/", "_");
+                            String desc = tag.getDescription();
+
+                            Node prop = JcrUtils.getOrAddNode(dir, nodeName, JcrConstants.NT_UNSTRUCTURED);
+                            prop.setProperty("name", tagName);
+                            prop.setProperty("description", desc);
+                            prop.setProperty("type", tagType);
+                            prop.setProperty("typeHex", tagTypeHex);
                         }
-
-
-                        // Extract Image Date Stamp, and save to root
-                        Date date = new Date();
-                        if( metadata.getDirectory(ExifIFD0Directory.class) != null ) {
-                            Date metadataDate = metadata.getDirectory(ExifIFD0Directory.class).getDate(306);
-                            if (metadataDate != null) {
-                                date = metadataDate;
-                            }
-                        }
-                        String dateCreated = dateFormat.format(date);
-                        node.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateCreated);
-
-                        session.save();
-
-                    }catch(ImageProcessingException |IOException ex){
-                        ex.printStackTrace();
-                        log.error(ex);
-                        //swallow
                     }
+
+
+                    // Extract Image Date Stamp, and save to root
+                    Date date = new Date();
+                    if (metadata.getDirectory(ExifIFD0Directory.class) != null) {
+                        Date metadataDate = metadata.getDirectory(ExifIFD0Directory.class).getDate(306);
+                        if (metadataDate != null) {
+                            date = metadataDate;
+                        }
+                    }
+                    String dateCreated = dateFormat.format(date);
+                    node.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateCreated);
+
+                    session.save();
+
+
                 }
 
 

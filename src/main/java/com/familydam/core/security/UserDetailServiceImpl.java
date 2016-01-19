@@ -6,6 +6,7 @@ package com.familydam.core.security;
 
 import com.familydam.core.dao.UserDao;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -22,6 +23,7 @@ public class UserDetailServiceImpl implements UserDetailsService
     @Autowired private TokenHandler tokenHandler;
 
 
+    @Cacheable()
     @Override
     public UserDetails loadUserByUsername(String principal_) throws UsernameNotFoundException
     {

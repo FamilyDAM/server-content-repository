@@ -17,7 +17,6 @@ import reactor.spring.context.annotation.Consumer;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.InputStream;
 
@@ -39,7 +38,7 @@ public class PHashObserver
 
 
 
-    public void execute(Session session, Node node) throws RepositoryException
+    public void execute(Session session, Node node) throws Exception
     {
         if( node != null ){
             if( node.isNodeType(FamilyDAMConstants.DAM_IMAGE))
@@ -47,17 +46,13 @@ public class PHashObserver
 
                 log.debug("{PHASH Image Observer} " +node.getPath());
 
-                try {
-                    InputStream is = JcrUtils.readFile(node);
+                InputStream is = JcrUtils.readFile(node);
 
-                    ImagePHash pHash = new ImagePHash();
-                    String hash = pHash.getHash(is);
-                    Node _node = session.getNode(node.getPath());
-                    _node.setProperty("phash", hash);
-                }
-                catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                ImagePHash pHash = new ImagePHash();
+                String hash = pHash.getHash(is);
+                Node _node = session.getNode(node.getPath());
+                _node.setProperty("phash", hash);
+
 
                 session.save();
             }

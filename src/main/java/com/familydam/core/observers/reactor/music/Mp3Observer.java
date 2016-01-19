@@ -35,7 +35,7 @@ public class Mp3Observer
     private Log log = LogFactory.getLog(this.getClass());
 
 
-    public Node execute(Session session, Node node) throws RepositoryException, IOException, InterruptedException
+    public Node execute(Session session, Node node) throws RepositoryException, IOException, InterruptedException, UnsupportedTagException, com.mpatric.mp3agic.InvalidDataException
     {
         log.debug("{mp3.metadata Observer} " +node.getPath());
 
@@ -111,14 +111,7 @@ public class Mp3Observer
 
             session.save();
         }
-        catch(UnsupportedTagException ute)
-        {
-            //todo
-        }
-        catch(com.mpatric.mp3agic.InvalidDataException ide)
-        {
-            //todo
-        }
+
         finally
         {
             if( tmpFile != null )

@@ -120,44 +120,16 @@ public class JobQueueServices
 
 
 
-    public void deleteJob(Session session, Node node_, String event_)
+    public void deleteJob(Session session, Node node)
     {
         try {
-            Node jobQueueNode = session.getNode("/" + FamilyDAMConstants.SYSTEM_ROOT + "/" + FamilyDAMConstants.SYSTEM_JOBQUEUE_FOLDER);
-
-            StreamSupport
-                    .stream(JcrUtils.getChildNodes(jobQueueNode).spliterator(), false)
-                    .filter(new Predicate<Node>()
-                    {
-                        @Override public boolean test(Node node)
-                        {
-                            try {
-                                return node.getProperty("nodeId").getString().equals(node_.getIdentifier())
-                                        && node.getProperty("event").getString().equals(event_);
-                            }
-                            catch(RepositoryException re){
-                                return false;
-                            }
-
-                        }
-                    })
-                    .forEach(new Consumer<Node>()
-                    {
-                        @Override public void accept(Node node)
-                        {
-                            try {
-                                node.remove();
-                                session.save();
-                            }catch(RepositoryException re){
-                                log.error(re);
-                            }
-                        }
-                    });
-        }catch( RepositoryException re){
+            node.remove();
+            session.save();
+        }catch(javax.jcr.RepositoryException re){
+            re.printStackTrace();
             log.error(re);
         }
     }
-
 
 
     public void deleteAllJobs(Session session, Node node_)

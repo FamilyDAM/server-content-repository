@@ -41,6 +41,8 @@ public class AuthenticatedHelper
 
     @Autowired private Repository repository;
 
+    private Session adminSession = null;
+    private Map<String, Session> savedSessions = new HashMap<>();
 
     /**
      * internal use only. This is used by background process to do async work on nodes (generate thumbnails, etc.)
@@ -49,8 +51,15 @@ public class AuthenticatedHelper
      */
     public Session getAdminSession() throws AuthenticationException
     {
+        /**
+        if (adminSession != null && adminSession.isLive()) {
+            return adminSession;
+        }
+         **/
+
         SimpleCredentials credentials = new SimpleCredentials(FamilyDAM.adminUserId, FamilyDAM.adminPassword.toCharArray());
-        return getSession(credentials);
+        adminSession = getSession(credentials);
+        return adminSession;
     }
 
     /**
@@ -61,11 +70,16 @@ public class AuthenticatedHelper
      */
     public Session getSession(Authentication authentication_) throws AuthenticationException
     {
+        Session _session = savedSessions.get( ((UserAuthentication) authentication_).getUser().getPath() );
+        if( _session != null) return _session;
+
+
         if( ((CustomUserDetails) ((UserAuthentication) authentication_).getUser()).getSession() != null ){
             return ((CustomUserDetails) ((UserAuthentication) authentication_).getUser()).getSession();
         }else {
             Credentials credentials = (Credentials) authentication_.getCredentials();
             Session session = getSession(credentials);
+            ((CustomUserDetails) ((UserAuthentication) authentication_).getUser()).setSession(session);
             return session;
         }
     }

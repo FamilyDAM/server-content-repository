@@ -5,6 +5,7 @@
 package com.familydam.core.api;
 
 import com.familydam.core.helpers.NodeMapper;
+import com.familydam.core.models.Group;
 import com.familydam.core.models.INode;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +36,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Search for content by jcr node type or mixin
@@ -76,11 +79,12 @@ public class SearchController
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(value = "/{type}", method = RequestMethod.POST)
-    public ResponseEntity<Collection<INode>> searchByType(HttpServletRequest request,
+    public ResponseEntity<Object> searchByType(HttpServletRequest request,
                                                           HttpServletResponse response,
                                                           @AuthenticationPrincipal Authentication currentUser_,
                                                           @RequestBody() String jsonBody,
                                                           @PathVariable(value = "type") String type,
+                                                          @RequestParam(value = "groupBy", defaultValue = "date:day", required = false) String groupBy_,
                                                           @RequestParam(value = "limit", required = false, defaultValue = "100") Integer limit,
                                                           @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset)
     {
@@ -159,7 +163,7 @@ public class SearchController
                     hasPath = true;
                     for (int i = 0; i < _paths.size(); i++) {
                         Map _path = _paths.get(i);
-                        pathClause.append(" ISDESCENDANTNODE(['" +_path.get("path") +"']) ");
+                        pathClause.append(" ISDESCENDANTNODE([" +_path.get("path") +"]) ");
                         if( i >= 0 && i < (_paths.size()-1) ){
                             pathClause.append(" OR ");
                         }
@@ -220,7 +224,30 @@ public class SearchController
                 _nodes.add(NodeMapper.map(node));
             }
 
-            return new ResponseEntity<>(_nodes, HttpStatus.OK);
+
+
+            Map<String, Group> _groupedNodes = new TreeMap<>();
+
+
+            for (INode _node : _nodes)
+            {
+                String _key = getGroupKey(groupBy_, _node);
+                String _label = getGroupLabel(groupBy_, _node);
+
+                if( !_groupedNodes.containsKey(_key) )
+                {
+                    Group group = new Group();
+                    group.setValue(_key);
+                    group.setLabel(_label);
+                    _groupedNodes.put(_key, group);
+                }
+
+                _groupedNodes.get(_key).getChildren().add(_node);
+            }
+
+
+            return new ResponseEntity<>(_groupedNodes, HttpStatus.OK);
+
 
         }
         catch (Exception ae) {
@@ -233,6 +260,80 @@ public class SearchController
             }
         }
     }
+
+
+    /**
+     * Get the real filter value
+     * @param groupBy_
+     * @param node_
+     * @return
+     */
+    private String getGroupKey(String groupBy_, INode node_)
+    {
+        String defaultKey = "---";
+
+        if( groupBy_.equalsIgnoreCase("date:year") )
+        {
+            Calendar dateCreated = node_.getDateCreated();
+            if( dateCreated != null ) {
+                return new Integer(dateCreated.get(Calendar.YEAR)).toString();
+            }
+        }
+        else if( groupBy_.equalsIgnoreCase("date:month") )
+        {
+            Calendar dateCreated = node_.getDateCreated();
+            if( dateCreated != null ) {
+                String monthName = dateCreated.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
+                return dateCreated.get(Calendar.YEAR) + "-" +(dateCreated.get(Calendar.MONTH)+1);
+            }
+        }
+        else if( groupBy_.equalsIgnoreCase("date:day") )
+        {
+            Calendar dateCreated = node_.getDateCreated();
+            if( dateCreated != null ) {
+                return dateCreated.get(Calendar.YEAR) + "-" +(dateCreated.get(Calendar.MONTH)+1) + "-" + dateCreated.get(Calendar.DAY_OF_MONTH);
+            }
+        }
+            return defaultKey; // a catch all for items with no value for the group by property
+    }
+
+
+    /**
+     * get a pretty label for the filter with a month name string
+     * @param groupBy_
+     * @param node_
+     * @return
+     */
+    private String getGroupLabel(String groupBy_, INode node_)
+    {
+        String defaultKey = "---";
+
+        if( groupBy_.equalsIgnoreCase("date:year") )
+        {
+            Calendar dateCreated = node_.getDateCreated();
+            if( dateCreated != null ) {
+                return new Integer(dateCreated.get(Calendar.YEAR)).toString();
+            }
+        }
+        else if( groupBy_.equalsIgnoreCase("date:month") )
+        {
+            Calendar dateCreated = node_.getDateCreated();
+            if( dateCreated != null ) {
+                String monthName = dateCreated.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
+                return dateCreated.get(Calendar.YEAR) + "-" +monthName;
+            }
+        }
+        else if( groupBy_.equalsIgnoreCase("date:day") )
+        {
+            Calendar dateCreated = node_.getDateCreated();
+            if( dateCreated != null ) {
+                String monthName = dateCreated.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
+                return dateCreated.get(Calendar.YEAR) + "-" +monthName + "-" + dateCreated.get(Calendar.DAY_OF_MONTH);
+            }
+        }
+            return defaultKey; // a catch all for items with no value for the group by property
+    }
+
 
 
     private String parseStartDate(Map date) throws RepositoryException
