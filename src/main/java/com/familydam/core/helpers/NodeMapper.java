@@ -17,6 +17,7 @@ import javax.el.PropertyNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -125,14 +126,20 @@ public class NodeMapper
         file.setMixins(_mixins);
 
         Collection<String> _tags = new ArrayList();
-        if( node.hasNode("dam:tags") ){
-            node.getNode("dam:tags");
+        if( node.hasProperty("dam:tags") ){
+            Value[] values = node.getProperty("dam:tags").getValues();
+            for (int i = 0; i < values.length; i++) {
+                _tags.add(values[i].getString());
+            }
         }
         file.setTags(_tags);
 
         Collection<String> _people = new ArrayList();
-        if( node.hasNode("dam:people") ){
-            node.getNode("dam:people");
+        if( node.hasProperty("dam:people") ){
+            Value[] values = node.getProperty("dam:people").getValues();
+            for (int i = 0; i < values.length; i++) {
+                _people.add(values[i].getString());
+            }
         }
         file.setPeople(_people);
 

@@ -225,7 +225,7 @@ public class NodeDaoController
             return new ResponseEntity<>(re.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         catch (Exception ae) {
-            return new ResponseEntity<>(id_, HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(id_, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         finally {
             if (session != null) {
