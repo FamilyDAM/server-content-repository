@@ -103,6 +103,10 @@ public class SearchController
                 _orderByDirection = (String) ((Map) _filters.get("order")).get("direction");
             }
 
+            if (_filters.containsKey("group")) {
+                groupBy_ = _filters.get("group").toString();
+            }
+
 
             StringBuffer sql = new StringBuffer("SELECT * FROM [").append(type).append("] ");
 
@@ -320,7 +324,7 @@ public class SearchController
             Calendar dateCreated = node_.getDateCreated();
             if( dateCreated != null ) {
                 String monthName = dateCreated.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
-                return dateCreated.get(Calendar.YEAR) + "-" +monthName;
+                return monthName +" " +dateCreated.get(Calendar.YEAR);
             }
         }
         else if( groupBy_.equalsIgnoreCase("date:day") )
@@ -328,7 +332,7 @@ public class SearchController
             Calendar dateCreated = node_.getDateCreated();
             if( dateCreated != null ) {
                 String monthName = dateCreated.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
-                return dateCreated.get(Calendar.YEAR) + "-" +monthName + "-" + dateCreated.get(Calendar.DAY_OF_MONTH);
+                return monthName + " " +dateCreated.get(Calendar.DAY_OF_MONTH) +", " +dateCreated.get(Calendar.YEAR);
             }
         }
             return defaultKey; // a catch all for items with no value for the group by property

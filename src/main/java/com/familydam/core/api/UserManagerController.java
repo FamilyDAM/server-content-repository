@@ -20,6 +20,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.value.BooleanValue;
 import org.apache.jackrabbit.value.DateValue;
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.annotation.PostConstruct;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -223,6 +225,7 @@ public class UserManagerController
             UserManager userManager = ((JackrabbitSession) session).getUserManager();
             User user = userManager.createUser(username, newPassword);
 
+
             Group familyGroup = (Group)userManager.getAuthorizable(FamilyDAMConstants.FAMILY_GROUP);
             // if this family group is empty and this is the first user, make them an admin
             if( !familyGroup.getMembers().hasNext() ) {
@@ -251,6 +254,11 @@ public class UserManagerController
                 }
             }
 
+            session.save();
+
+            // make sure the user has an UUID
+            Node userNode = session.getNode(user.getPath());
+            userNode.addMixin(NodeTypeConstants.MIX_REFERENCEABLE);
             session.save();
 
             // now create a new session for the new users.
