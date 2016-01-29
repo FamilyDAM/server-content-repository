@@ -10,6 +10,10 @@ import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -38,7 +42,6 @@ import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Part;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -117,36 +120,64 @@ public class ImportController
             HttpServletResponse response,
             @AuthenticationPrincipal Authentication currentUser_) throws LoginException, NoSuchWorkspaceException, IOException, ServletException
     {
+        if( !ServletFileUpload.isMultipartContent(request) ) {
+            return new ResponseEntity<Node>(HttpStatus.BAD_REQUEST);
+        }
+
+
         boolean fileExists = false;
         Session session = null;
         try {
             session = authenticatedHelper.getSession(currentUser_);
 
-            // FIND the path
-            String _path = request.getParameter("path");
 
-            String dirPath = _path.replace("~", FamilyDAMConstants.CONTENT_ROOT);
-            if (!dirPath.startsWith("/" + FamilyDAMConstants.CONTENT_ROOT)) {
-                dirPath = "/" + FamilyDAMConstants.CONTENT_ROOT + dirPath;
-            }
+            String _path = null;
+            String _contentType = null;
+            String _fileName = null;
 
-            Node _contentRoot = session.getNode("/" +FamilyDAMConstants.CONTENT_ROOT);
-            String _relativePath = dirPath.replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "");
-            Node copyToDir = JcrUtils.getOrCreateByPath(_contentRoot, _relativePath, false, JcrConstants.NT_FOLDER, JcrConstants.NT_FOLDER, true);
-//todo add mixins to all parent folders
+            InputStream _fileStream = null;
 
-            for (Part part : request.getParts()) {
-                String _name = part.getName();
-                if (_name.equalsIgnoreCase("file")) {
-                    String _contentType = part.getContentType();
-                    String _fileName = ((Part) part).getSubmittedFileName();
+            ServletFileUpload upload = new ServletFileUpload();
+            FileItemIterator iter = upload.getItemIterator(request);
+            while (iter.hasNext()) {
+                FileItemStream item = iter.next();
+                String name = item.getFieldName();
+                InputStream stream = item.openStream();
+                if (item.isFormField()) {
+                    if( name.equalsIgnoreCase("path") ){
+                        // FIND the path
+                        _path = Streams.asString(stream);
+                    }
+                    //System.out.println("Form field " + name + " with value " + Streams.asString(stream) + " detected.");
+                }
+                else
+                {
+                    _fileName = item.getName();
+                    _contentType = item.getContentType();
+                    //System.out.println("File field " + name + " with file name " + item.getName() + " detected.");
+                    // Process the input stream
+                    _fileStream = item.openStream();
 
+
+                    // check file name for starting /
                     int pos = _fileName.lastIndexOf("/");
                     if( pos > -1 && (pos+1) < _fileName.length() ){
                         _fileName = _fileName.substring(pos+1);
                     }
+                    _fileName = cleanFileName(_fileName);
 
-                    InputStream _file = part.getInputStream();
+                    //set dir path, from the _path
+                    String dirPath = _path.replace("~", FamilyDAMConstants.CONTENT_ROOT);
+                    if (!dirPath.startsWith("/" + FamilyDAMConstants.CONTENT_ROOT)) {
+                        dirPath = "/" + FamilyDAMConstants.CONTENT_ROOT + dirPath;
+                    }
+
+                    Node _contentRoot = session.getNode("/" +FamilyDAMConstants.CONTENT_ROOT);
+                    String _relativePath = dirPath.replace("/" +FamilyDAMConstants.CONTENT_ROOT +"/", "");
+
+                    // Create DIR to store file
+                    Node copyToDir = JcrUtils.getOrCreateByPath(_contentRoot, _relativePath, false, JcrConstants.NT_FOLDER, JcrConstants.NT_FOLDER, true);
+                    //todo add mixins to all parent folders
 
                     // figure out the mime type
                     String mimeType = MimeTypeManager.getMimeTypeForContentType(_contentType);
@@ -155,17 +186,14 @@ public class ImportController
                         mimeType = MimeTypeManager.getMimeType(_fileName);
                     }
 
-
                     // Check to see if this is a new node or if we are updating an existing node
                     Node nodeExistsCheck = JcrUtils.getNodeIfExists(copyToDir, _fileName);
                     if (nodeExistsCheck != null) {
                         fileExists = true;
                     }
 
-                    _fileName = cleanFileName(_fileName);
-
                     // Upload the FILE
-                    Node fileNode = JcrUtils.putFile(copyToDir, _fileName, mimeType, new BufferedInputStream(_file));
+                    Node fileNode = JcrUtils.putFile(copyToDir, _fileName, mimeType, _fileStream);
                     fileNode.addMixin("dam:extensible");
                     fileNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
                     //fileNode.addMixin(JcrConstants.MIX_VERSIONABLE);
@@ -194,7 +222,6 @@ public class ImportController
             }
 
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-
         }
         catch (Exception ex) {
             ex.printStackTrace();
@@ -205,6 +232,7 @@ public class ImportController
                 session.logout();
             }
         }
+
     }
 
 

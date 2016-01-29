@@ -132,7 +132,7 @@ public class DirectoryController
             //newNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
             newNode.addMixin( JcrConstants.MIX_REFERENCEABLE );
             newNode.addMixin("mix:created");
-            newNode.addMixin("dam:userfolder");
+            //newNode.addMixin("dam:userfolder");
             newNode.addMixin("dam:extensible");
             session.save();
             //todo assign permissions

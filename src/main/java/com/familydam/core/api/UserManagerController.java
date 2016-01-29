@@ -97,25 +97,28 @@ public class UserManagerController
                                                               @RequestParam("username") String username_,
                                                               @RequestParam("password") String password_) throws IOException, LoginException, RepositoryException
     {
-        CustomUserDetails customUserDetails = userDao.getUser(username_, password_);
+        try {
+            CustomUserDetails customUserDetails = userDao.getUser(username_, password_);
 
-        customUserDetails.setPrincipalName(username_);
-        customUserDetails.setPassword(password_);
+            customUserDetails.setPrincipalName(username_);
+            customUserDetails.setPassword(password_);
 
 
-        MultiValueMap<String, String> _headers = new LinkedMultiValueMap<>();
-        if( customUserDetails.getCredentials() != null ) {
-            String token = ((SimpleCredentials) customUserDetails.getCredentials()).getAttribute(".token").toString();
-            //_headers.add("token", token);
-            _headers.add(FamilyDAMConstants.XAUTHTOKEN, token);
-        }else {
-            // we should not support the else scenarion
-            //String _token = tokenHandler.createTokenForUser(customUserDetails);
-            //_headers.add(FamilyDAMConstants.XAUTHTOKENREFRESH, _token);
+            MultiValueMap<String, String> _headers = new LinkedMultiValueMap<>();
+            if (customUserDetails.getCredentials() != null) {
+                String token = ((SimpleCredentials) customUserDetails.getCredentials()).getAttribute(".token").toString();
+                //_headers.add("token", token);
+                _headers.add(FamilyDAMConstants.XAUTHTOKEN, token);
+            } else {
+                // we should not support the else scenarion
+                //String _token = tokenHandler.createTokenForUser(customUserDetails);
+                //_headers.add(FamilyDAMConstants.XAUTHTOKENREFRESH, _token);
+            }
+
+            return new ResponseEntity<>(customUserDetails, _headers, HttpStatus.OK);
+        }catch(Exception ex){
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-
-        return new ResponseEntity<>(customUserDetails, _headers, HttpStatus.OK);
-
     }
 
 

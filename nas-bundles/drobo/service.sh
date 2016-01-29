@@ -21,8 +21,8 @@ logfile="${tmp_dir}/log.txt"
 statusfile="${tmp_dir}/status.txt"
 errorfile="${tmp_dir}/error.txt"
 daemon="${DROBOAPPS_DIR}/java8/bin/java"
-jarpath="${prog_dir}/FamilyDAM-0.0.1-SNAPSHOT.jar"
-java_opts=
+jarpath="${prog_dir}/FamilyDAM.jar"
+java_opts=-Djcr.repo.home=./familydam-repo
 
 start()
 {
@@ -34,13 +34,14 @@ start()
   fi
 
 
-    setsid "${daemon}" ${java_opts} -cjar ${jarpath} &
+    setsid "${daemon}" ${java_opts} -jar ${jarpath} &
     if [ $! -gt 0 ]; then
         local pid=$!
         echo "${pid}" > "${pidfile}"
         renice 19 "${pid}"
     fi
 }
+
 
 
 case "$1" in

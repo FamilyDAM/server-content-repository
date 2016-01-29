@@ -18,7 +18,6 @@ import reactor.core.Reactor;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
-import javax.security.sasl.AuthenticationException;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
@@ -121,7 +120,7 @@ public class ImageJobRunner
 
             System.gc();
 
-        }catch( AuthenticationException re){
+        }catch( Exception re){
             log.error(re);
         }finally {
             if( session != null) session.logout();

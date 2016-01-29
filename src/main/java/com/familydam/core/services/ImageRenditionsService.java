@@ -62,7 +62,7 @@ public class ImageRenditionsService
         JpegDirectory jpegDirectory = (JpegDirectory) metadata.getDirectory(JpegDirectory.class);
 
         int orientation = 1;
-        if( exifIFD0Directory != null ) {
+        if( exifIFD0Directory != null && exifIFD0Directory.containsTag(ExifIFD0Directory.TAG_ORIENTATION) ) {
             try {
                 orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
             }

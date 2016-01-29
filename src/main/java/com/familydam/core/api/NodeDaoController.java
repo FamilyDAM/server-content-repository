@@ -261,7 +261,11 @@ public class NodeDaoController
             Node node = session.getNodeByIdentifier(id_);
 
             // only allow the deletion of user nodes
-            if( node.isNodeType("dam:userfolder") || node.isNodeType("dam:file") ) {
+            if( node.isNodeType("dam:file") || ( node.isNodeType("nt:folder") &&
+                    (!node.isNodeType("dam:systemfolder") ||
+                    !node.isNodeType("dam:contentfolder") ||
+                    !node.isNodeType("dam:userfolder")))
+            ) {
 
                 // special check, so we can add _source prop
                 if( !node.isNodeType("dam:extensible") ){

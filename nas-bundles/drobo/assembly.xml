@@ -33,7 +33,7 @@
             <directory>target</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
-                <include>FamilyDAM-0.0.1-SNAPSHOT.jar</include>
+                <include>FamilyDAM.jar</include>
             </includes>
         </fileSet>
     </fileSets>

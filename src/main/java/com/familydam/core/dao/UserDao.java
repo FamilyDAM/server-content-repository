@@ -23,7 +23,6 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -48,19 +47,20 @@ public class UserDao
 
     private UserManager adminUserManager;
 
-    @PostConstruct
-    private void initUserManager() throws RepositoryException, AuthenticationException
-    {
-        adminUserManager = (((SessionImpl) authenticatedHelper.getAdminSession()).getUserManager());
-    }
 
 
     public CustomUserDetails getUser(String username_, String password_) throws UsernameNotFoundException
     {
+
+
         CustomUserDetails _user = null;
 
         Session session = null;
+        Session adminSession = null;
         try {
+            adminSession = authenticatedHelper.getAdminSession();
+            UserManager adminUserManager = (((SessionImpl) adminSession).getUserManager());
+
             SimpleCredentials credentials = new SimpleCredentials(username_, password_.toCharArray());
             credentials.setAttribute(".token", "");
             credentials.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 1209600000l);
@@ -87,9 +87,15 @@ public class UserDao
         catch(RepositoryException ex){
             throw new UsernameNotFoundException(username_);
         }
+        catch(AuthenticationException ex){
+            throw new UsernameNotFoundException(username_);
+        }
         finally {
             if (session != null) {
                 session.logout();
+            }
+            if( adminSession != null){
+                adminSession.logout();
             }
         }
 

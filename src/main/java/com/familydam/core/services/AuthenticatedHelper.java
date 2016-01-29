@@ -70,8 +70,18 @@ public class AuthenticatedHelper
      */
     public Session getSession(Authentication authentication_) throws AuthenticationException
     {
-        Session _session = savedSessions.get( ((UserAuthentication) authentication_).getUser().getPath() );
-        if( _session != null) return _session;
+        try{
+            Session _session = savedSessions.get( ((UserAuthentication) authentication_).getUser().getPath() );
+            if( _session != null){
+                if(!_session.isLive()){
+                    _session.refresh(true);
+                }
+                return _session;
+            }
+        } catch (RepositoryException ex){
+            ex.printStackTrace();
+            //swallow
+        }
 
 
         if( ((CustomUserDetails) ((UserAuthentication) authentication_).getUser()).getSession() != null ){
@@ -95,10 +105,10 @@ public class AuthenticatedHelper
     {
         try {
             if( credentials instanceof TokenCredentials) {
-                ((TokenCredentials) credentials).setAttribute("oak.refresh-interval", "2000");
+                ((TokenCredentials) credentials).setAttribute("oak.refresh-interval", "20000");
                 ((TokenCredentials) credentials).setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, "1209600000");
             }else if( credentials instanceof SimpleCredentials ){
-                ((SimpleCredentials) credentials).setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 86400000l);
+                ((SimpleCredentials) credentials).setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, "86400000");
             }
             Session session = repository.login(credentials, null);
             return session;

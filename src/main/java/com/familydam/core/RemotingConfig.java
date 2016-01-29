@@ -19,6 +19,7 @@
 
 package com.familydam.core;
 
+import org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,7 +58,7 @@ public class RemotingConfig
         return bean;
     }
 
-    /**
+    /** todo can I remove this? **/
     @Bean
     public ServletRegistrationBean remotingServlet() {
         ServletRegistrationBean bean = new ServletRegistrationBean(new JcrRemotingServlet() {
@@ -78,5 +79,5 @@ public class RemotingConfig
         bean.addInitParameter(JcrRemotingServlet.INIT_PARAM_HOME, davHome);
         return bean;
     }
-    **/
+
 }

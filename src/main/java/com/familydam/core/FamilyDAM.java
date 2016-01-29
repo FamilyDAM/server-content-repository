@@ -6,13 +6,10 @@ package com.familydam.core;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.embedded.MultipartConfigFactory;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
-import javax.servlet.MultipartConfigElement;
 import java.io.IOException;
 
 @EnableScheduling
@@ -31,12 +28,23 @@ public class FamilyDAM extends WebMvcConfigurerAdapter
     }
 
 
+/**
+    @Bean
+    public CommonsMultipartResolver multipartResolver() {
+        CommonsMultipartResolver resolver=new CommonsMultipartResolver();
+        resolver.setDefaultEncoding("utf-8");
+        return resolver;
+    }
+
 
     @Bean
     MultipartConfigElement multipartConfigElement() {
+
         MultipartConfigFactory factory = new MultipartConfigFactory();
-        //factory.setMaxFileSize("5000MB");
-        //factory.setMaxRequestSize("5000MB");
+        factory.setMaxFileSize("500MB");
+        factory.setMaxRequestSize("500MB");
         return factory.createMultipartConfig();
     }
+    **/
+
 }
