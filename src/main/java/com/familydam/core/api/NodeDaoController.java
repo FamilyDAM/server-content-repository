@@ -326,14 +326,14 @@ public class NodeDaoController
 
                 // TODO, this is slow, we should move this to the IMPORT process before we store the original
                 // Since we are going to load the Original image, as a fallback, We'll rotate it as needed
-                BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
+                //BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
 
-                BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, size.intValue(), Scalr.Method.AUTOMATIC);
+                String scaledImage = imageRenditionsService.scaleImage(session, node, size.intValue());
 
-                String renditionPath = imageRenditionsService.saveRendition(session, node, rendition, scaledImage, "PNG");
-                session.save();
+                //String renditionPath = imageRenditionsService.saveRendition(session, node, rendition, scaledImage, "PNG");
+                //session.save();
 
-                imageNode = session.getNode(renditionPath);
+                imageNode = session.getNode(scaledImage);
             }
         }
 

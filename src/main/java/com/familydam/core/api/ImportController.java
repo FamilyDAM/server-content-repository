@@ -156,7 +156,7 @@ public class ImportController
                     _contentType = item.getContentType();
                     //System.out.println("File field " + name + " with file name " + item.getName() + " detected.");
                     // Process the input stream
-                    _fileStream = item.openStream();
+                    _fileStream = stream;//item.openStream();
 
 
                     // check file name for starting /

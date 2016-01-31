@@ -12,7 +12,6 @@ import com.familydam.core.services.ImageRenditionsService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.Reactor;
 import reactor.event.Event;
@@ -22,7 +21,6 @@ import reactor.spring.context.annotation.Selector;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 /**
@@ -51,22 +49,7 @@ public class ThumbnailObserver
                 // create renditions
                 if( node.isNodeType("dam:image") ) {
 
-                        BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
-
-                        if( rotatedImage != null ) {
-                            node.setProperty(FamilyDAMConstants.WIDTH, rotatedImage.getWidth());
-                            node.setProperty(FamilyDAMConstants.HEIGHT, rotatedImage.getHeight());
-                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, size_, Scalr.Method.AUTOMATIC);
-                            String renditionPath = imageRenditionsService.saveRendition(session, node, "web.200", scaledImage, "PNG");
-                            session.save();
-                        }else{
-                            BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, size_, Scalr.Method.AUTOMATIC);
-                            String renditionPath = imageRenditionsService.saveRendition(session, node, "web.1024", scaledImage, "PNG");
-                            session.save();
-                        }
-
-                        session.save();
-
+                    String renditionPath = imageRenditionsService.scaleImage(session, node, size_);
                 }
 
             }
@@ -103,10 +86,10 @@ public class ThumbnailObserver
 
                     // create renditions
                     try {
-                        BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
-                        BufferedImage scaledImage = imageRenditionsService.scaleImage(session, node, rotatedImage, _size, Scalr.Method.AUTOMATIC);
-                        String renditionPath = imageRenditionsService.saveRendition(session, node, "web." +_size, scaledImage, "PNG");
-                        session.save();
+                        //BufferedImage rotatedImage = imageRenditionsService.rotateImage(session, node);
+                        String scaledImage = imageRenditionsService.scaleImage(session, node, _size);
+                        //String renditionPath = imageRenditionsService.saveRendition(session, node, "web." +_size, scaledImage.getWidth(), scaledImage.getHeight(), scaledImage, "PNG");
+                        //session.save();
                     }
                     catch (RepositoryException | IOException ex) {
                         ex.printStackTrace();

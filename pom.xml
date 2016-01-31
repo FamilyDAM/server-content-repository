@@ -228,6 +228,11 @@
             <version>1.1</version>
         </dependency>
         -->
+        <dependency>
+            <groupId>org.im4java</groupId>
+            <artifactId>im4java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
 		<dependency>
 			<groupId>javax.media.jai</groupId>
 			<artifactId>com.springsource.javax.media.jai.core</artifactId>
@@ -471,7 +476,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
-                            <descriptor>nas-bundles/drobo/assembly.xml</descriptor>
+                            <descriptor>_nas-bundles/drobo/assembly.xml</descriptor>
                             <outputDirectory>target/nas-bundles/drobo</outputDirectory>
                             <finalName>FamilyDAM</finalName>
                         </configuration>

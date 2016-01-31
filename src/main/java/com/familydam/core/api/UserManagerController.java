@@ -269,6 +269,16 @@ public class UserManagerController
             // create all of the users folders, using their session.
             userDao.createUserDirectories(session, user);
 
+            /**
+             * todo: generate keys and save with the user
+             * @see https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
+            keyGen.initialize(1024, random);
+            KeyPair pair = keyGen.generateKeyPair();
+            PrivateKey priv = pair.getPrivate();
+            PublicKey pub = pair.getPublic();
+             **/
 
             return new ResponseEntity<>(HttpStatus.CREATED);
         }
