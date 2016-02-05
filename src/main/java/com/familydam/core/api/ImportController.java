@@ -15,6 +15,8 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.util.Text;
@@ -62,6 +64,9 @@ import java.util.Map;
 @RequestMapping("/api/import")
 public class ImportController
 {
+    private Log log = LogFactory.getLog(this.getClass());
+
+
     @Autowired private ApplicationContext applicationContext;
 
     private AuthenticatedHelper authenticatedHelper = null;
@@ -317,7 +322,7 @@ public class ImportController
             Node parent,
             boolean recursive) throws LoginException, NoSuchWorkspaceException, javax.security.sasl.AuthenticationException, IOException, RepositoryException
     {
-
+        log.trace("copy local folder: " +folder.getAbsolutePath());
 
         String _name = cleanFileName(folder.getName());
         Node _folderNode = JcrUtils.getOrAddNode(parent, _name, JcrConstants.NT_FOLDER);
@@ -361,12 +366,13 @@ public class ImportController
             File file,
             Node parent) throws LoginException, NoSuchWorkspaceException, javax.security.sasl.AuthenticationException, IOException, RepositoryException
     {
+        log.trace("copy local file: " +file.getAbsolutePath());
 
         if (!session.isLive()) {
             session = authenticatedHelper.getSession(currentUser_);
         }
 
-        Node root = session.getNode("/");
+        Node root = session.getNode("/" +FamilyDAMConstants.CONTENT_ROOT);
         //Node copyToDir = JcrUtils.getOrCreateByPath(dirPath, JcrConstants.NT_FOLDER, session);
 
 
@@ -384,6 +390,22 @@ public class ImportController
         //Node fileNode = JcrUtils.putFile(copyToDir, fileName, mimeType, new BufferedInputStream(new FileInputStream(file)));
         InputStream fileIS = new BufferedInputStream(new FileInputStream(file));
         Node fileNode = JcrUtils.putFile(parent, fileName, mimeType, fileIS);
+        fileNode.addMixin("dam:extensible");
+        fileNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
+        //fileNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        //fileNode.setProperty(JcrConstants.JCR_CREATED, session.getUserID());
+
+
+        // Set a DAM specific date (as as tring so it's easy to parse later)
+        Property createdDate = fileNode.getProperty(JcrConstants.JCR_CREATED);
+        Calendar dateStamp = Calendar.getInstance();
+        if( createdDate == null ) {
+            dateStamp = createdDate.getDate();
+        }
+        fileNode.setProperty(FamilyDAMConstants.DAM_DATECREATED, dateFormat.format(dateStamp.getTime()));
+
+
+
         // save the primary file.
         session.save();
 

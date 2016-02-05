@@ -12,8 +12,6 @@ import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.jpeg.JpegDirectory;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.helpers.MimeTypeManager;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -21,6 +19,8 @@ import org.im4java.core.ConvertCmd;
 import org.im4java.core.IMOperation;
 import org.im4java.core.IdentifyCmd;
 import org.imgscalr.Scalr;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +46,7 @@ import java.io.InputStream;
 @Service
 public class ImageRenditionsService
 {
-    Log log = LogFactory.getLog(this.getClass());
+    private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Value("${image.tools.enabled}")
     Boolean imageToolsEnabled = false;
@@ -221,7 +221,7 @@ public class ImageRenditionsService
             // execute the operation
             convertCommand.run(op);
 
-            log.trace("Scale Image with ImageMagick x" +longSize +" | " +node.getPath());
+            log.trace("    Scale Image with ImageMagick x" +longSize +" | " +node.getPath());
             String newImagePath = _tmpSmallFile.getAbsolutePath();
 
 
@@ -230,7 +230,7 @@ public class ImageRenditionsService
             BufferedImage tmpBufferedImage = ImageIO.read(tmpImageIS);
 
             // Save Rendition
-            log.trace("Resize thumbnail w=" +tmpBufferedImage.getWidth() +" | h=" +tmpBufferedImage.getHeight() +" | " +node.getPath());
+            log.trace("    Resize thumbnail w=" +tmpBufferedImage.getWidth() +" | h=" +tmpBufferedImage.getHeight() +" | " +node.getPath());
             FileInputStream fileInputStream = new FileInputStream(newImagePath);
             String newNodePath = this.saveRendition(session, node, "web." +longSize, tmpBufferedImage.getWidth(), tmpBufferedImage.getHeight(), fileInputStream, nameParts[1]);
             return newNodePath;
@@ -260,7 +260,7 @@ public class ImageRenditionsService
             Node newNode = JcrUtils.putFile(renditions, name, mimeType, is);
 
             session.save();
-            log.trace("Save Rendition w=" +width_ +" | h=" +height_ +" | " + newNode.getPath());
+            log.trace("    Save Rendition w=" +width_ +" | h=" +height_ +" | " + newNode.getPath());
             return newNode.getPath();
         }catch(Exception ex){
             ex.printStackTrace();

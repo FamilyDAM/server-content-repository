@@ -9,9 +9,9 @@ import com.drew.metadata.MetadataException;
 import com.familydam.core.FamilyDAMConstants;
 import com.familydam.core.services.AuthenticatedHelper;
 import com.familydam.core.services.ImageRenditionsService;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.Reactor;
 import reactor.event.Event;
@@ -29,7 +29,7 @@ import java.io.IOException;
 @Consumer
 public class ThumbnailObserver
 {
-    private Log log = LogFactory.getLog(this.getClass());
+    private Logger log = LoggerFactory.getLogger(this.getClass());
 
 
     @Autowired private Reactor reactor;
@@ -102,7 +102,7 @@ public class ThumbnailObserver
 
         }catch(Exception re){
             re.printStackTrace();
-            log.error(re);
+            log.error(re.getMessage(), re);
         }finally {
             if( session != null) session.logout();
         }

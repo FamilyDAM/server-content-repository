@@ -38,7 +38,7 @@ public class MusicJobRunner
     @Autowired Mp3Observer mp3Observer;
     @Autowired private AuthenticatedHelper authenticatedHelper;
 
-    private int jobsPerIteration = 10;
+    private int jobsPerIteration = 0;
 
 
     @Scheduled(fixedRate = 10000)
