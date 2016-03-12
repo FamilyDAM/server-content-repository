@@ -28,6 +28,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
@@ -76,6 +77,15 @@ public class UserDao
             _user.setPassword(password_);
             _user.setPath(authorizable.getPath());
 
+            if( authorizable.getProperty(FamilyDAMConstants.FIRST_NAME) != null ) {
+                _user.setFirstName(((Value[]) authorizable.getProperty(FamilyDAMConstants.FIRST_NAME))[0].getString());
+            }
+            if( authorizable.getProperty(FamilyDAMConstants.LAST_NAME) != null ) {
+                _user.setLastName(((Value[]) authorizable.getProperty(FamilyDAMConstants.LAST_NAME))[0].getString());
+            }
+            if( authorizable.getProperty(FamilyDAMConstants.EMAIL) != null ) {
+                _user.setEmail(((Value[]) authorizable.getProperty(FamilyDAMConstants.EMAIL))[0].getString());
+            }
 
 
             if (_user != null) {

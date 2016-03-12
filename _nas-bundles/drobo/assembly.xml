@@ -23,7 +23,7 @@
 
     <fileSets>
         <fileSet>
-            <directory>nas-bundles/drobo/</directory>
+            <directory>_nas-bundles/drobo/</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>service.sh</include>

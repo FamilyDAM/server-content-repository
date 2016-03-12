@@ -31,6 +31,9 @@ public class FamilyDAMConstants
 
     //Node props
     public static final String CHILDREN = "children";
+    public static final String FIRST_NAME = "firstName";
+    public static final String LAST_NAME = "lastName";
+    public static final String EMAIL = "email";
 
     //Events
     public static final String EVENT_IMAGE_METADATA = "image.metadata";

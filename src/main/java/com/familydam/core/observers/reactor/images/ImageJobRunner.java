@@ -135,7 +135,7 @@ public class ImageJobRunner
 
             long eTime = System.currentTimeMillis();
             long _total = eTime - sTime;
-            log.debug("Image Runner Scheduled Task: " + (_total) + "ms | jobs=" + jobsPerIteration);
+            //log.trace("Image Runner Scheduled Task: " + (_total) + "ms | jobs=" + jobsPerIteration);
 
             if( nodes.size() == 0 ){
               this.jobsPerIteration = 3;//back to default when we have an empty queue

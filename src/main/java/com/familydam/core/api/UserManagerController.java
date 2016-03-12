@@ -348,7 +348,7 @@ public class UserManagerController
      * @throws LoginException
      * @throws RepositoryException
      */
-    //@PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @RequestMapping(value = "/{username}", method = RequestMethod.POST)
     public ResponseEntity<Map> updateUser(HttpServletRequest request, HttpServletResponse response,
                                           @AuthenticationPrincipal Authentication currentUser_,
@@ -371,18 +371,29 @@ public class UserManagerController
             for (Object key : props.keySet()) {
 
                 Object _val = props.get(key);
-                if( _val instanceof String ) {
-                    user.setProperty((String)key, new StringValue((String)_val));
-                }else if( _val instanceof Boolean) {
-                    user.setProperty((String)key, new BooleanValue((Boolean)_val));
-                }else if( _val instanceof Long ) {
-                    user.setProperty((String)key, new LongValue((Long)_val));
-                }else if( _val instanceof Date ) {
-                    Calendar _cal = Calendar.getInstance();
-                    _cal.setTime((Date)_val);
-                    user.setProperty((String)key, new DateValue(_cal));
-                }else if( _val instanceof Double ) {
-                    user.setProperty((String)key, new DoubleValue((Double)_val));
+
+                if( key.equals("password") ){
+
+                    //todo
+                    Authorizable _user = userManager.getAuthorizable(username);
+                    ((User)_user).changePassword((String)_val);
+
+
+                }else {
+
+                    if (_val instanceof String) {
+                        user.setProperty((String) key, new StringValue((String) _val));
+                    } else if (_val instanceof Boolean) {
+                        user.setProperty((String) key, new BooleanValue((Boolean) _val));
+                    } else if (_val instanceof Long) {
+                        user.setProperty((String) key, new LongValue((Long) _val));
+                    } else if (_val instanceof Date) {
+                        Calendar _cal = Calendar.getInstance();
+                        _cal.setTime((Date) _val);
+                        user.setProperty((String) key, new DateValue(_cal));
+                    } else if (_val instanceof Double) {
+                        user.setProperty((String) key, new DoubleValue((Double) _val));
+                    }
                 }
             }
 

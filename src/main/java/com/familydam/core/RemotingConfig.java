@@ -37,7 +37,7 @@ import javax.jcr.Repository;
 public class RemotingConfig
 {
 
-    @Value("${jcr.repo.home}/dav")
+    @Value("${jcr.repo.home}/drive")
     private String davHome;
 
     @Autowired
@@ -51,9 +51,9 @@ public class RemotingConfig
             public Repository getRepository() {
                 return repository;
             }
-        }, "/repository/*");
+        }, "/drive/*");
 
-        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/repository");
+        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/drive");
         bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_CONFIG, "remoting/webdav-config.xml");
         return bean;
     }

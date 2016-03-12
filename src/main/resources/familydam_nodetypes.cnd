@@ -18,6 +18,7 @@
 - dam:datecreated (STRING)
 
 [dam:image] mixin
+- phash (STRING)
 - dam:datecreated (STRING)
 + dam:metadata (nt:unstructured)
 + dam:renditions (nt:folder)
