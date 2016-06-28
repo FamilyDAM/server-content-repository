@@ -7,11 +7,11 @@
 prog_dir=`dirname \`realpath $0\``
 
 name="FamilyDAM"
-version="0.0.1"
+version="0.1.0"
 description="Digital Asset Manager for Families"
 framework_version="2.1"
 depends="java8"
-webui=""
+webui="http://localhost:8080/index.html"
 
 prog_dir="$(dirname "$(realpath "${0}")")"
 java_tmp_dir="${prog_dir}/tmp"
@@ -20,9 +20,9 @@ pidfile="${tmp_dir}/pid.txt"
 logfile="${tmp_dir}/log.txt"
 statusfile="${tmp_dir}/status.txt"
 errorfile="${tmp_dir}/error.txt"
-daemon="${DROBOAPPS_DIR}/java8/bin/java"
 jarpath="${prog_dir}/FamilyDAM.jar"
 java_opts=-Djcr.repo.home=./familydam-repo
+daemon="${DROBOAPPS_DIR}/java8/bin/java"
 
 start()
 {
